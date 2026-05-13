@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Enums\EventCategory;
 use App\Enums\EventStatus;
 use App\Models\Event;
 use App\Models\User;
@@ -560,5 +561,267 @@ class EventTest extends TestCase
             ->deleteJson("/api/v1/events/{$event->id}");
 
         $response->assertForbidden();
+    }
+
+    /**
+     * index: ?q=... で title 部分一致
+     */
+    public function test_index_filters_by_keyword_in_title(): void
+    {
+        $user = User::factory()->create();
+        Event::factory()->for($user)->create([
+            'status' => EventStatus::Published,
+            'title' => 'Laravel 勉強会',
+        ]);
+        Event::factory()->for($user)->create([
+            'status' => EventStatus::Published,
+            'title' => 'Vue.js ハンズオン',
+        ]);
+
+        $response = $this->getJson('/api/v1/events?q=Laravel');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.title', 'Laravel 勉強会');
+    }
+
+    /**
+     * index: ?q=... で description 部分一致
+     */
+    public function test_index_filters_by_keyword_in_description(): void
+    {
+        $user = User::factory()->create();
+        Event::factory()->for($user)->create([
+            'status' => EventStatus::Published,
+            'title' => 'もくもく会',
+            'description' => 'Laravel について語ろう',
+        ]);
+        Event::factory()->for($user)->create([
+            'status' => EventStatus::Published,
+            'title' => '一般イベント',
+            'description' => '何かを学ぶ',
+        ]);
+
+        $response = $this->getJson('/api/v1/events?q=Laravel');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.title', 'もくもく会');
+    }
+
+    /**
+     * index: ?q=... 該当なし
+     */
+    public function test_index_returns_empty_when_keyword_does_not_match(): void
+    {
+        $user = User::factory()->create();
+        Event::factory()->for($user)->create([
+            'status' => EventStatus::Published,
+            'title' => 'Vue.js',
+            'description' => 'Vue について',
+        ]);
+
+        $response = $this->getJson('/api/v1/events?q=NotMatchingKeyword');
+
+        $response->assertOk();
+        $response->assertJsonCount(0, 'data');
+        $response->assertJsonPath('meta.total', 0);
+    }
+
+    /**
+     * index: ?category=N でカテゴリ一致のみ
+     */
+    public function test_index_filters_by_category(): void
+    {
+        $user = User::factory()->create();
+        Event::factory()->for($user)->create([
+            'status' => EventStatus::Published,
+            'title' => 'frontend-event',
+            'category' => EventCategory::Frontend,
+        ]);
+        Event::factory()->for($user)->create([
+            'status' => EventStatus::Published,
+            'title' => 'backend-event',
+            'category' => EventCategory::Backend,
+        ]);
+
+        $response = $this->getJson('/api/v1/events?category=1');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.title', 'frontend-event');
+    }
+
+    /**
+     * index: ?category=99 は 422
+     */
+    public function test_index_rejects_invalid_category(): void
+    {
+        $response = $this->getJson('/api/v1/events?category=99');
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['category']);
+    }
+
+    /**
+     * index: ?prefecture=... で都道府県一致のみ
+     */
+    public function test_index_filters_by_prefecture(): void
+    {
+        $user = User::factory()->create();
+        Event::factory()->for($user)->create([
+            'status' => EventStatus::Published,
+            'title' => '東京イベント',
+            'prefecture' => '東京都',
+        ]);
+        Event::factory()->for($user)->create([
+            'status' => EventStatus::Published,
+            'title' => '大阪イベント',
+            'prefecture' => '大阪府',
+        ]);
+
+        $response = $this->getJson('/api/v1/events?prefecture='.urlencode('東京都'));
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.title', '東京イベント');
+    }
+
+    /**
+     * index: ?from=... で指定日以降のイベントのみ
+     */
+    public function test_index_filters_by_from_date(): void
+    {
+        $user = User::factory()->create();
+        Event::factory()->for($user)->create([
+            'status' => EventStatus::Published,
+            'title' => 'sooner',
+            'event_date' => now()->addDays(3),
+        ]);
+        Event::factory()->for($user)->create([
+            'status' => EventStatus::Published,
+            'title' => 'later',
+            'event_date' => now()->addDays(10),
+        ]);
+
+        $from = now()->addDays(5)->toIso8601String();
+
+        $response = $this->getJson('/api/v1/events?from='.urlencode($from));
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.title', 'later');
+    }
+
+    /**
+     * index: ?to=... (日付のみ) で endOfDay 補完が効く
+     */
+    public function test_index_filters_by_to_date_with_end_of_day_completion(): void
+    {
+        $user = User::factory()->create();
+        Event::factory()->for($user)->create([
+            'status' => EventStatus::Published,
+            'title' => 'same-day-afternoon',
+            'event_date' => now()->addDays(5)->setTime(15, 0, 0),
+        ]);
+        Event::factory()->for($user)->create([
+            'status' => EventStatus::Published,
+            'title' => 'next-day',
+            'event_date' => now()->addDays(6),
+        ]);
+
+        $to = now()->addDays(5)->toDateString();
+
+        $response = $this->getJson('/api/v1/events?to='.$to);
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.title', 'same-day-afternoon');
+    }
+
+    /**
+     * index: ?from=...&to=... 範囲フィルタ
+     */
+    public function test_index_filters_by_date_range(): void
+    {
+        $user = User::factory()->create();
+        Event::factory()->for($user)->create([
+            'status' => EventStatus::Published,
+            'title' => 'before-range',
+            'event_date' => now()->addDays(1),
+        ]);
+        Event::factory()->for($user)->create([
+            'status' => EventStatus::Published,
+            'title' => 'in-range',
+            'event_date' => now()->addDays(5),
+        ]);
+        Event::factory()->for($user)->create([
+            'status' => EventStatus::Published,
+            'title' => 'after-range',
+            'event_date' => now()->addDays(10),
+        ]);
+
+        $from = now()->addDays(3)->toIso8601String();
+        $to = now()->addDays(7)->toIso8601String();
+
+        $response = $this->getJson('/api/v1/events?from='.urlencode($from).'&to='.urlencode($to));
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.title', 'in-range');
+    }
+
+    /**
+     * index: ?from=invalid は 422
+     */
+    public function test_index_rejects_invalid_from_date(): void
+    {
+        $response = $this->getJson('/api/v1/events?from=not-a-date');
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['from']);
+    }
+
+    /**
+     * index: to が from より前は 422
+     */
+    public function test_index_rejects_to_before_from(): void
+    {
+        $from = now()->addDays(7)->toIso8601String();
+        $to = now()->addDays(3)->toIso8601String();
+
+        $response = $this->getJson('/api/v1/events?from='.urlencode($from).'&to='.urlencode($to));
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['to']);
+    }
+
+    /**
+     * index: 複数パラメータは AND 結合
+     */
+    public function test_index_combines_multiple_filters_with_and(): void
+    {
+        $user = User::factory()->create();
+        Event::factory()->for($user)->create([
+            'status' => EventStatus::Published,
+            'title' => 'Laravel Frontend',
+            'category' => EventCategory::Frontend,
+        ]);
+        Event::factory()->for($user)->create([
+            'status' => EventStatus::Published,
+            'title' => 'Laravel Backend',
+            'category' => EventCategory::Backend,
+        ]);
+        Event::factory()->for($user)->create([
+            'status' => EventStatus::Published,
+            'title' => 'Vue Frontend',
+            'category' => EventCategory::Frontend,
+        ]);
+
+        $response = $this->getJson('/api/v1/events?q=Laravel&category=1');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.title', 'Laravel Frontend');
     }
 }
