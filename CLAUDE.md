@@ -51,6 +51,13 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 - Be concise in your explanations - focus on what's important rather than explaining obvious details.
 
+## Development Workflow
+
+- 実装は段階的に行い、1機能ごとにユーザーレビューを待つ
+- ユーザーレビュー後、承認を得てからgitコミットする
+- コミット前には必ず `vendor/bin/pint --dirty --format agent` を実行する
+- コミットメッセージは日本語で簡潔に記述する
+
 === boost rules ===
 
 # Laravel Boost
