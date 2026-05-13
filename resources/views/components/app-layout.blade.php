@@ -27,6 +27,12 @@
                             {{ auth()->user()->name }}
                         </span>
                     @else
+                        @if (Route::has('login'))
+                            <a href="{{ route('login') }}"
+                                class="inline-flex items-center px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 text-sm font-medium transition-colors">
+                                ログイン
+                            </a>
+                        @endif
                         @if (Route::has('register'))
                             <a href="{{ route('register') }}"
                                 class="inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium shadow-sm transition-colors">
