@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
+use App\Http\Controllers\Api\V1\EventAttendanceController;
 use App\Http\Controllers\Api\V1\EventController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,5 +28,17 @@ Route::prefix('v1')->group(function () {
         Route::post('events', [EventController::class, 'store'])->name('api.v1.events.store');
         Route::put('events/{event}', [EventController::class, 'update'])->name('api.v1.events.update');
         Route::delete('events/{event}', [EventController::class, 'destroy'])->name('api.v1.events.destroy');
+    });
+
+    // イベント参加 (認証不要)
+    Route::get('events/{event}/attendances', [EventAttendanceController::class, 'index'])
+        ->name('api.v1.events.attendances.index');
+
+    // イベント参加 (認証必須)
+    Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
+        Route::post('events/{event}/attendances', [EventAttendanceController::class, 'store'])
+            ->name('api.v1.events.attendances.store');
+        Route::delete('events/{event}/attendances', [EventAttendanceController::class, 'destroy'])
+            ->name('api.v1.events.attendances.destroy');
     });
 });
