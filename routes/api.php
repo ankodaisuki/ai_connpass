@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\EventAttendanceController;
 use App\Http\Controllers\Api\V1\EventController;
+use App\Http\Controllers\Api\V1\MyAttendanceController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -40,5 +41,11 @@ Route::prefix('v1')->group(function () {
             ->name('api.v1.events.attendances.store');
         Route::delete('events/{event}/attendances', [EventAttendanceController::class, 'destroy'])
             ->name('api.v1.events.attendances.destroy');
+    });
+
+    // 自分の申し込み一覧 (認証必須)
+    Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
+        Route::get('me/attendances', [MyAttendanceController::class, 'index'])
+            ->name('api.v1.me.attendances.index');
     });
 });
