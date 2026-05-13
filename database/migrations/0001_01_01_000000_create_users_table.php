@@ -13,11 +13,10 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
+            $table->string('email')->unique()->comment('ログインID');
             $table->string('name');
-            $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
-            $table->rememberToken();
+            $table->string('password')->comment('bcryptで暗号化');
+            $table->unsignedTinyInteger('status')->default(1)->comment('1:有効、0:無効');
             $table->timestamps();
         });
 
