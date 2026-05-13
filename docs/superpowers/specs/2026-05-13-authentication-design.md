@@ -84,6 +84,8 @@
 
 `status` カラムはデフォルト 1（有効）が設定される。
 
+`expires_at` の計算式は `personal_access_tokens.created_at + config('sanctum.expiration')` 分。Sanctum は DB に期限カラムを持たないため、レスポンス生成時にコントローラ側で算出する。ISO8601 UTC で出力する。
+
 ### 3.2 POST /api/v1/auth/login
 
 メール＋パスワードで認証し、API トークンを発行する。
