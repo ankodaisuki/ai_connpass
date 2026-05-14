@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UserStatus;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 
 class ProfileController extends Controller
 {
@@ -20,5 +22,19 @@ class ProfileController extends Controller
         $attendanceCount = $user->eventAttendances()->count();
 
         return view('profile.show', compact('user', 'events', 'attendanceCount'));
+    }
+
+    public function destroy(): RedirectResponse
+    {
+        /** @var User $user */
+        $user = auth()->user();
+
+        $user->update(['status' => UserStatus::Inactive]);
+
+        auth()->logout();
+        request()->session()->invalidate();
+        request()->session()->regenerateToken();
+
+        return redirect()->route('events.index');
     }
 }

@@ -12,6 +12,7 @@ Route::get('/', [EventController::class, 'index'])->name('events.index');
 
 Route::middleware('auth')->group(function () {
     Route::get('profile', [ProfileController::class, 'show'])->name('profile');
+    Route::delete('profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('my/attendances', [MyAttendanceController::class, 'index'])->name('my.attendances');
     Route::get('events/create', [EventController::class, 'create'])->name('events.create');
     Route::post('events', [EventController::class, 'store'])->name('events.store');

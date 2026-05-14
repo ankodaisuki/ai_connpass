@@ -133,5 +133,20 @@
             @endif
         </div>
 
+        {{-- 退会セクション --}}
+        <div class="mt-8 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/20 p-6">
+            <h2 class="text-base font-semibold text-red-700 dark:text-red-400 mb-1">退会する</h2>
+            <p class="text-sm text-red-600/80 dark:text-red-400/70 mb-4">退会するとアカウントが無効になります。この操作は取り消せません。</p>
+            <form method="POST" action="{{ route('profile.destroy') }}"
+                onsubmit="return confirm('本当に退会しますか？この操作は取り消せません。')">
+                @csrf
+                @method('DELETE')
+                <button type="submit"
+                    class="inline-flex items-center px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium shadow-sm transition-colors">
+                    退会する
+                </button>
+            </form>
+        </div>
+
     </div>
 </x-app-layout>
