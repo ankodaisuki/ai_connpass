@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\MyAttendanceController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -10,6 +11,7 @@ Route::get('/', [EventController::class, 'index'])->name('events.index');
 
 Route::middleware('auth')->group(function () {
     Route::get('profile', [ProfileController::class, 'show'])->name('profile');
+    Route::get('my/attendances', [MyAttendanceController::class, 'index'])->name('my.attendances');
     Route::get('events/create', [EventController::class, 'create'])->name('events.create');
     Route::post('events', [EventController::class, 'store'])->name('events.store');
     Route::get('events/{event}/edit', [EventController::class, 'edit'])->name('events.edit');
