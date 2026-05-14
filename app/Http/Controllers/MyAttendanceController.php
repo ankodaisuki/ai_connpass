@@ -15,6 +15,7 @@ class MyAttendanceController extends Controller
 
         $attendances = $user->eventAttendances()
             ->where('status', AttendanceStatus::Applied)
+            ->whereHas('event')
             ->with('event.user')
             ->orderBy('applied_at', 'asc')
             ->paginate(15);

@@ -39,6 +39,7 @@
                 @foreach ($attendances as $attendance)
                     @php
                         $event = $attendance->event;
+                        if ($event === null) { continue; }
                         $cat = $categoryStyles[$event->category->value] ?? ['label' => $event->category->name, 'class' => 'bg-slate-100 text-slate-600', 'gradient' => 'from-slate-500 to-slate-600'];
                         $isPast = $event->event_date->isPast();
                     @endphp

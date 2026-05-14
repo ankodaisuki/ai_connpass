@@ -114,7 +114,7 @@
                         id="event_date"
                         name="event_date"
                         value="{{ old('event_date') }}"
-                        class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-[#3E3E3A] bg-white dark:bg-[#0a0a0a] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition @error('event_date') border-red-500 focus:ring-red-500 @enderror"
+                        class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-[#3E3E3A] bg-white dark:bg-[#0a0a0a] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition [color-scheme:light_dark] @error('event_date') border-red-500 focus:ring-red-500 @enderror"
                         required
                     />
                     @error('event_date')

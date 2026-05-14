@@ -56,7 +56,7 @@ class EventFactory extends Factory
         return [
             'user_id' => User::factory(),
             'title' => fake()->randomElement($titles),
-            'description' => fake('ja_JP')->realText(200),
+            'description' => fake()->text(200),
             'category' => fake()->randomElement(EventCategory::cases()),
             'prefecture' => fake()->randomElement(['東京都', '大阪府', '京都府', '福岡県', '神奈川県', '埼玉県']),
             'location' => fake()->randomElement($venues),
