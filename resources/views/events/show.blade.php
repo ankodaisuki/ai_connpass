@@ -158,19 +158,53 @@
 
                 <!-- 参加ボタン -->
                 <div class="pt-2">
+                    @error('attendance')
+                        <p class="text-red-500 text-sm mb-3">{{ $message }}</p>
+                    @enderror
+                    @if (session('success'))
+                        <p class="text-emerald-600 dark:text-emerald-400 text-sm mb-3">{{ session('success') }}</p>
+                    @endif
+
                     @auth
-                        @if ($isPast)
+                        @if ($event->user_id === auth()->id())
+                            <a href="{{ route('events.edit', $event) }}"
+                                class="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl border border-slate-300 dark:border-[#3E3E3A] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1a1a18] text-sm font-semibold transition">
+                                イベントを編集する
+                            </a>
+                        @elseif ($isPast)
                             <button disabled class="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 text-sm font-semibold cursor-not-allowed">
                                 終了しました
                             </button>
+                        @elseif ($myAttendance !== null)
+                            <div class="space-y-2">
+                                <div class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-sm font-semibold">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                                    </svg>
+                                    参加申し込み済み
+                                </div>
+                                <form method="POST" action="{{ route('events.attendances.destroy', $event) }}"
+                                    onsubmit="return confirm('参加をキャンセルしてもよいですか？')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit"
+                                        class="w-full inline-flex items-center justify-center px-4 py-2 rounded-xl border border-slate-300 dark:border-[#3E3E3A] text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800 text-sm transition">
+                                        キャンセルする
+                                    </button>
+                                </form>
+                            </div>
                         @elseif ($isFull)
                             <button disabled class="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 text-sm font-semibold cursor-not-allowed">
                                 満員です
                             </button>
                         @else
-                            <button disabled class="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl bg-gradient-to-r {{ $style['gradient'] }} text-white text-sm font-semibold shadow-sm hover:opacity-90 transition-opacity">
-                                参加する（準備中）
-                            </button>
+                            <form method="POST" action="{{ route('events.attendances.store', $event) }}">
+                                @csrf
+                                <button type="submit"
+                                    class="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl bg-gradient-to-r {{ $style['gradient'] }} text-white text-sm font-semibold shadow-sm hover:opacity-90 transition-opacity">
+                                    参加する
+                                </button>
+                            </form>
                         @endif
                     @else
                         <a href="{{ route('register') }}" class="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl bg-gradient-to-r {{ $style['gradient'] }} text-white text-sm font-semibold shadow-sm hover:opacity-90 transition-opacity">

@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AttendanceStatus;
 use App\Enums\EventCategory;
 use App\Enums\EventStatus;
 use App\Http\Requests\Api\V1\Event\StoreEventRequest;
 use App\Http\Requests\Api\V1\Event\UpdateEventRequest;
 use App\Models\Event;
+use App\Models\EventAttendance;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -117,6 +119,17 @@ class EventController extends Controller
         $event->loadCount('attendances');
         $event->load('user');
 
-        return view('events.show', compact('event'));
+        /** @var User|null $authUser */
+        $authUser = auth()->user();
+
+        $myAttendance = $authUser !== null
+            ? EventAttendance::query()
+                ->where('event_id', $event->id)
+                ->where('user_id', $authUser->id)
+                ->where('status', AttendanceStatus::Applied)
+                ->first()
+            : null;
+
+        return view('events.show', compact('event', 'myAttendance'));
     }
 }
