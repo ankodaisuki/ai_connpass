@@ -20,15 +20,48 @@ class EventFactory extends Factory
      */
     public function definition(): array
     {
+        $titles = [
+            'Laravel 入門ハンズオン',
+            'React モダン開発勉強会',
+            'TypeScript 実践ワークショップ',
+            'AWS クラウド設計入門',
+            'Docker & Kubernetes 勉強会',
+            'Python データ分析入門',
+            'Vue.js 実践勉強会',
+            'GitHub Actions CI/CD 入門',
+            'GraphQL API 設計勉強会',
+            'Next.js フルスタック開発',
+            'TailwindCSS デザイン実践',
+            'Flutter モバイル開発入門',
+            'セキュリティ勉強会：OWASP Top 10',
+            'データベース設計のベストプラクティス',
+            'AIエンジニアリング入門',
+            'Rust プログラミング勉強会',
+            'Go 言語バックエンド開発',
+        ];
+
+        $venues = [
+            '渋谷ヒカリエ 8F',
+            '六本木ヒルズ コワーキングスペース',
+            '新宿 WeWork',
+            '品川インターシティ カンファレンスルーム',
+            'コワーキングスペース茅場町 Co-Edo',
+            'AWS 目黒オフィス',
+            'Google 渋谷オフィス',
+            'DMM.com 本社セミナールーム',
+            'DeNA 本社大会議室',
+            'Recruit 本社 ホール',
+        ];
+
         return [
             'user_id' => User::factory(),
-            'title' => fake()->sentence(3),
-            'description' => fake()->paragraph(),
+            'title' => fake()->randomElement($titles),
+            'description' => fake('ja_JP')->realText(200),
             'category' => fake()->randomElement(EventCategory::cases()),
-            'prefecture' => fake()->randomElement(['東京都', '大阪府', '京都府', '福岡県']),
-            'location' => fake()->address(),
-            'event_date' => fake()->dateTimeBetween('+1 day', '+3 months'),
-            'capacity' => fake()->numberBetween(10, 100),
+            'prefecture' => fake()->randomElement(['東京都', '大阪府', '京都府', '福岡県', '神奈川県', '埼玉県']),
+            'location' => fake()->randomElement($venues),
+            'event_date' => fake()->dateTimeBetween('+1 day', '+6 months'),
+            'capacity' => fake()->randomElement([20, 30, 50, 80, 100]),
             'status' => EventStatus::Published,
         ];
     }

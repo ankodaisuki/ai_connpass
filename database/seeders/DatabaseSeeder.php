@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Event;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -16,7 +17,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $testUser = User::factory()->create([
-            'name' => 'Test User',
+            'name' => 'テストユーザー',
             'email' => 'test@example.com',
         ]);
 
@@ -25,7 +26,7 @@ class DatabaseSeeder extends Seeder
         $allUsers = collect([$testUser])->merge($otherUsers);
 
         $allUsers->each(function (User $user) {
-            \App\Models\Event::factory(3)->create(['user_id' => $user->id]);
+            Event::factory(3)->create(['user_id' => $user->id]);
         });
     }
 }
