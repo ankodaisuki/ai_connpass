@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Enums\EventCategory;
 use App\Enums\EventStatus;
 use App\Http\Requests\Api\V1\Event\StoreEventRequest;
+use App\Http\Requests\Api\V1\Event\UpdateEventRequest;
 use App\Models\Event;
+use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -45,13 +47,42 @@ class EventController extends Controller
      */
     public function store(StoreEventRequest $request): RedirectResponse
     {
+        /** @var User $user */
+        $user = auth()->user();
+
         $event = Event::create([
             ...$request->validated(),
-            'user_id' => auth()->id(),
+            'user_id' => $user->id,
             'status' => $request->integer('status', EventStatus::Draft->value),
         ]);
 
         return redirect()->route('events.show', $event)->with('success', 'イベントを作成しました。');
+    }
+
+    /**
+     * イベント編集フォーム
+     */
+    public function edit(Event $event): View
+    {
+        $this->authorize('update', $event);
+
+        return view('events.edit', [
+            'event' => $event,
+            'categories' => EventCategory::cases(),
+            'statuses' => EventStatus::cases(),
+        ]);
+    }
+
+    /**
+     * イベント更新
+     */
+    public function update(UpdateEventRequest $request, Event $event): RedirectResponse
+    {
+        $this->authorize('update', $event);
+
+        $event->update($request->validated());
+
+        return redirect()->route('events.show', $event)->with('success', 'イベントを更新しました。');
     }
 
     /**
@@ -60,6 +91,7 @@ class EventController extends Controller
     public function show(Event $event): View
     {
         if ($event->status !== EventStatus::Published) {
+            /** @var User|null $user */
             $user = auth()->user();
             if ($user === null || $user->id !== $event->user_id) {
                 abort(Response::HTTP_NOT_FOUND);

@@ -22,13 +22,22 @@
     <x-slot:title>{{ $event->title }} - AI Connpass</x-slot:title>
 
     <!-- パンくず -->
-    <nav class="mb-6 text-sm">
+    <nav class="mb-6 flex items-center justify-between text-sm">
         <a href="{{ route('events.index') }}" class="inline-flex items-center gap-1 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>
             イベント一覧に戻る
         </a>
+        @can('update', $event)
+            <a href="{{ route('events.edit', $event) }}"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-[#3E3E3A] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1a1a18] text-xs font-medium transition-colors">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
+                </svg>
+                編集
+            </a>
+        @endcan
     </nav>
 
     <!-- ヒーロー（カテゴリーカラー帯） -->
