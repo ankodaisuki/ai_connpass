@@ -18,6 +18,15 @@ class LoginController extends Controller
         return view('auth.login');
     }
 
+    public function destroy(): RedirectResponse
+    {
+        Auth::logout();
+        session()->invalidate();
+        session()->regenerateToken();
+
+        return redirect()->route('events.index');
+    }
+
     public function store(LoginRequest $request): RedirectResponse
     {
         if (! Auth::attempt($request->validated(), $request->boolean('remember'))) {

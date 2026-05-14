@@ -14,6 +14,8 @@ Route::middleware('auth')->group(function () {
 
 Route::get('events/{event}', [EventController::class, 'show'])->name('events.show');
 
+Route::middleware('auth')->post('logout', [LoginController::class, 'destroy'])->name('logout');
+
 Route::middleware('guest')->group(function () {
     Route::get('register', [RegisterController::class, 'show'])->name('register');
     Route::post('register', [RegisterController::class, 'store']);
