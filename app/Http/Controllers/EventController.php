@@ -9,11 +9,14 @@ use App\Http\Requests\Api\V1\Event\UpdateEventRequest;
 use App\Models\Event;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 class EventController extends Controller
 {
+    use AuthorizesRequests;
+
     private const int PER_PAGE = 12;
 
     /**
@@ -83,6 +86,19 @@ class EventController extends Controller
         $event->update($request->validated());
 
         return redirect()->route('events.show', $event)->with('success', 'イベントを更新しました。');
+    }
+
+    /**
+     * イベント削除
+     */
+    public function destroy(Event $event): RedirectResponse
+    {
+        $this->authorize('delete', $event);
+
+        $event->update(['status' => EventStatus::Private]);
+        $event->delete();
+
+        return redirect()->route('events.index')->with('success', 'イベントを削除しました。');
     }
 
     /**
