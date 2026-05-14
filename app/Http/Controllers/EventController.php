@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\AttendanceStatus;
 use App\Enums\EventCategory;
 use App\Enums\EventStatus;
+use App\Http\Requests\Api\V1\Event\IndexEventRequest;
 use App\Http\Requests\Api\V1\Event\StoreEventRequest;
 use App\Http\Requests\Api\V1\Event\UpdateEventRequest;
 use App\Models\Event;
@@ -13,6 +14,7 @@ use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Carbon;
 use Symfony\Component\HttpFoundation\Response;
 
 class EventController extends Controller
@@ -22,18 +24,49 @@ class EventController extends Controller
     private const int PER_PAGE = 12;
 
     /**
-     * イベント一覧（公開済みのみ、event_date昇順）
+     * イベント一覧（公開済みのみ、event_date昇順、検索・フィルタ対応）
      */
-    public function index(): View
+    public function index(IndexEventRequest $request): View
     {
-        $events = Event::query()
+        $query = Event::query()
             ->with('user')
             ->withCount('attendances')
-            ->where('status', EventStatus::Published)
-            ->orderBy('event_date', 'asc')
-            ->paginate(self::PER_PAGE);
+            ->where('status', EventStatus::Published);
 
-        return view('events.index', compact('events'));
+        if ($q = $request->validated('q')) {
+            $query->where(function ($qb) use ($q) {
+                $qb->where('title', 'LIKE', "%{$q}%")
+                    ->orWhere('description', 'LIKE', "%{$q}%");
+            });
+        }
+
+        if ($category = $request->validated('category')) {
+            $query->where('category', EventCategory::from((int) $category));
+        }
+
+        if ($prefecture = $request->validated('prefecture')) {
+            $query->where('prefecture', $prefecture);
+        }
+
+        if ($from = $request->validated('from')) {
+            $query->where('event_date', '>=', Carbon::parse($from));
+        }
+
+        if ($to = $request->validated('to')) {
+            $toDate = Carbon::parse($to);
+            if ($toDate->hour === 0 && $toDate->minute === 0 && $toDate->second === 0) {
+                $toDate = $toDate->endOfDay();
+            }
+            $query->where('event_date', '<=', $toDate);
+        }
+
+        $events = $query->orderBy('event_date', 'asc')
+            ->paginate(self::PER_PAGE)
+            ->withQueryString();
+
+        $filters = $request->validated();
+
+        return view('events.index', compact('events', 'filters'));
     }
 
     /**

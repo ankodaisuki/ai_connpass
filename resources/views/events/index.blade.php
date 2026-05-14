@@ -1,6 +1,15 @@
 @php
     use App\Enums\EventCategory;
 
+    $categoryLabels = [
+        EventCategory::Frontend->value => 'フロントエンド',
+        EventCategory::Backend->value => 'バックエンド',
+        EventCategory::Database->value => 'データベース',
+        EventCategory::Mobile->value => 'モバイル',
+        EventCategory::Ai->value => 'AI',
+        EventCategory::Other->value => 'その他',
+    ];
+
     $categoryStyles = [
         EventCategory::Frontend->value => ['label' => 'フロントエンド', 'class' => 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300'],
         EventCategory::Backend->value => ['label' => 'バックエンド', 'class' => 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'],
@@ -35,6 +44,116 @@
         </div>
     </section>
 
+    <!-- 検索・フィルターフォーム -->
+    @php
+        $hasFilters = collect($filters ?? [])->filter()->isNotEmpty();
+        $prefectures = ['北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県','茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県','新潟県','富山県','石川県','福井県','山梨県','長野県','岐阜県','静岡県','愛知県','三重県','滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県','鳥取県','島根県','岡山県','広島県','山口県','徳島県','香川県','愛媛県','高知県','福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県','オンライン'];
+    @endphp
+    <section class="mb-8">
+        <form method="GET" action="{{ route('events.index') }}" class="rounded-2xl bg-white dark:bg-[#161615] border border-slate-200 dark:border-[#3E3E3A] shadow-sm p-4 sm:p-5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <!-- キーワード -->
+                <div class="lg:col-span-2">
+                    <label for="q" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">キーワード</label>
+                    <div class="relative">
+                        <svg class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 15.803a7.5 7.5 0 0 0 10.607 0Z" />
+                        </svg>
+                        <input type="text" id="q" name="q" value="{{ $filters['q'] ?? '' }}"
+                            placeholder="タイトル・内容で検索"
+                            class="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-300 dark:border-[#3E3E3A] bg-white dark:bg-[#0a0a0a] text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition" />
+                    </div>
+                </div>
+
+                <!-- カテゴリ -->
+                <div>
+                    <label for="category" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">カテゴリ</label>
+                    <select id="category" name="category"
+                        class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-[#3E3E3A] bg-white dark:bg-[#0a0a0a] text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+                        <option value="">すべて</option>
+                        @foreach (EventCategory::cases() as $cat)
+                            <option value="{{ $cat->value }}" {{ ($filters['category'] ?? '') == $cat->value ? 'selected' : '' }}>
+                                {{ $categoryLabels[$cat->value] }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- 都道府県 -->
+                <div>
+                    <label for="prefecture" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">都道府県</label>
+                    <select id="prefecture" name="prefecture"
+                        class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-[#3E3E3A] bg-white dark:bg-[#0a0a0a] text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+                        <option value="">すべて</option>
+                        @foreach ($prefectures as $pref)
+                            <option value="{{ $pref }}" {{ ($filters['prefecture'] ?? '') === $pref ? 'selected' : '' }}>{{ $pref }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- 開催日（from） -->
+                <div>
+                    <label for="from" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">開催日（以降）</label>
+                    <input type="date" id="from" name="from" value="{{ $filters['from'] ?? '' }}"
+                        class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-[#3E3E3A] bg-white dark:bg-[#0a0a0a] text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition" />
+                </div>
+
+                <!-- 開催日（to） -->
+                <div>
+                    <label for="to" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">開催日（以前）</label>
+                    <input type="date" id="to" name="to" value="{{ $filters['to'] ?? '' }}"
+                        class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-[#3E3E3A] bg-white dark:bg-[#0a0a0a] text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition" />
+                </div>
+
+                <!-- ボタン -->
+                <div class="flex items-end gap-2 lg:col-span-2">
+                    <button type="submit"
+                        class="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium shadow-sm transition-colors">
+                        検索
+                    </button>
+                    @if ($hasFilters)
+                        <a href="{{ route('events.index') }}"
+                            class="px-4 py-2 rounded-lg border border-slate-300 dark:border-[#3E3E3A] text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-[#1a1a18] text-sm font-medium transition-colors whitespace-nowrap">
+                            クリア
+                        </a>
+                    @endif
+                </div>
+            </div>
+
+            <!-- アクティブフィルターの概要 -->
+            @if ($hasFilters)
+                <div class="mt-3 flex flex-wrap items-center gap-2 pt-3 border-t border-slate-100 dark:border-[#3E3E3A]">
+                    <span class="text-xs text-slate-500 dark:text-slate-400">絞り込み中：</span>
+                    @if (!empty($filters['q']))
+                        <span class="inline-flex items-center gap-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-0.5 text-xs font-medium text-indigo-700 dark:text-indigo-300">
+                            「{{ $filters['q'] }}」
+                        </span>
+                    @endif
+                    @if (!empty($filters['category']))
+                        <span class="inline-flex items-center gap-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-0.5 text-xs font-medium text-indigo-700 dark:text-indigo-300">
+                            {{ $categoryLabels[(int)$filters['category']] ?? '' }}
+                        </span>
+                    @endif
+                    @if (!empty($filters['prefecture']))
+                        <span class="inline-flex items-center gap-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-0.5 text-xs font-medium text-indigo-700 dark:text-indigo-300">
+                            {{ $filters['prefecture'] }}
+                        </span>
+                    @endif
+                    @if (!empty($filters['from']))
+                        <span class="inline-flex items-center gap-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-0.5 text-xs font-medium text-indigo-700 dark:text-indigo-300">
+                            {{ $filters['from'] }} 以降
+                        </span>
+                    @endif
+                    @if (!empty($filters['to']))
+                        <span class="inline-flex items-center gap-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-0.5 text-xs font-medium text-indigo-700 dark:text-indigo-300">
+                            {{ $filters['to'] }} 以前
+                        </span>
+                    @endif
+                </div>
+            @endif
+        </form>
+    </section>
+
     <!-- イベントカードグリッド -->
     @if ($events->isEmpty())
         <div class="flex flex-col items-center justify-center py-20 text-center">
@@ -43,8 +162,16 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
                 </svg>
             </div>
-            <p class="text-lg font-medium text-slate-700 dark:text-slate-300">公開中のイベントはまだありません</p>
-            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">しばらくしてから再度ご確認ください。</p>
+            @if ($hasFilters)
+                <p class="text-lg font-medium text-slate-700 dark:text-slate-300">条件に一致するイベントが見つかりませんでした</p>
+                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">検索条件を変えてお試しください。</p>
+                <a href="{{ route('events.index') }}" class="mt-4 inline-flex items-center px-4 py-2 rounded-lg border border-slate-300 dark:border-[#3E3E3A] text-slate-600 dark:text-slate-400 text-sm font-medium hover:bg-slate-50 dark:hover:bg-[#1a1a18] transition-colors">
+                    フィルターをクリア
+                </a>
+            @else
+                <p class="text-lg font-medium text-slate-700 dark:text-slate-300">公開中のイベントはまだありません</p>
+                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">しばらくしてから再度ご確認ください。</p>
+            @endif
         </div>
     @else
         <section>
