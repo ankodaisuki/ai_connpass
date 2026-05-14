@@ -30,7 +30,7 @@ class EventController extends Controller
     {
         $query = Event::query()
             ->with('user')
-            ->withCount('attendances')
+            ->withCount('appliedAttendances as attendances_count')
             ->where('status', EventStatus::Published);
 
         if ($q = $request->validated('q')) {
@@ -149,7 +149,7 @@ class EventController extends Controller
             }
         }
 
-        $event->loadCount('attendances');
+        $event->loadCount(['appliedAttendances as attendances_count']);
         $event->load(['user', 'attendances' => function ($query) {
             $query->where('status', AttendanceStatus::Applied)
                 ->with('user')

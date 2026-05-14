@@ -66,4 +66,23 @@ class UserDeactivationTest extends TestCase
 
         $this->assertEquals(AttendanceStatus::Cancelled, $attendance->fresh()->status);
     }
+
+    public function test_event_attendance_count_excludes_cancelled_attendances(): void
+    {
+        $organizer = User::factory()->create();
+        $user = User::factory()->create();
+        $event = Event::factory()->create(['user_id' => $organizer->id]);
+
+        EventAttendance::factory()->create([
+            'user_id' => $user->id,
+            'event_id' => $event->id,
+            'status' => AttendanceStatus::Applied,
+        ]);
+
+        $user->update(['status' => UserStatus::Inactive]);
+
+        $response = $this->get(route('events.show', $event));
+
+        $response->assertSee('0 / ');
+    }
 }
