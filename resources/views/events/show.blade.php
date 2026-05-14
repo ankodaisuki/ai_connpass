@@ -139,7 +139,7 @@
                         開催日時
                     </div>
                     <p class="text-lg font-bold text-slate-900 dark:text-white">
-                        {{ $event->event_date->format('Y年m月d日 (D)') }}
+                        {{ $event->event_date->format('Y年m月d日') }}（{{ $event->event_date->locale('ja')->isoFormat('ddd') }}）
                     </p>
                     <p class="text-sm text-slate-600 dark:text-slate-400">
                         {{ $event->event_date->format('H:i') }} 開始
