@@ -150,7 +150,11 @@ class EventController extends Controller
         }
 
         $event->loadCount('attendances');
-        $event->load('user');
+        $event->load(['user', 'attendances' => function ($query) {
+            $query->where('status', AttendanceStatus::Applied)
+                ->with('user')
+                ->orderBy('applied_at', 'asc');
+        }]);
 
         /** @var User|null $authUser */
         $authUser = auth()->user();

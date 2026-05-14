@@ -98,6 +98,33 @@
                     <p class="text-slate-500 dark:text-slate-400 italic">説明はまだありません。</p>
                 @endif
             </section>
+
+            <!-- 参加者一覧 -->
+            <section class="rounded-2xl bg-white dark:bg-[#161615] border border-slate-200 dark:border-[#3E3E3A] p-6 sm:p-8 shadow-sm">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                    <span class="h-1 w-6 rounded-full bg-gradient-to-r {{ $style['gradient'] }}"></span>
+                    参加者
+                    <span class="ml-1 text-base font-normal text-slate-500 dark:text-slate-400">{{ $attendeeCount }}人 / {{ $event->capacity }}人</span>
+                </h2>
+
+                @if ($event->attendances->isEmpty())
+                    <p class="text-sm text-slate-500 dark:text-slate-400 italic">まだ参加者がいません。</p>
+                @else
+                    <ul class="space-y-2">
+                        @foreach ($event->attendances as $attendance)
+                            <li class="flex items-center gap-3">
+                                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs font-semibold">
+                                    {{ mb_substr($attendance->user->name, 0, 1) }}
+                                </span>
+                                <span class="text-sm font-medium text-slate-800 dark:text-slate-200">{{ $attendance->user->name }}</span>
+                                <span class="ml-auto text-xs text-slate-400 dark:text-slate-500 shrink-0">
+                                    {{ $attendance->applied_at->format('Y/m/d') }} 申し込み
+                                </span>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+            </section>
         </div>
 
         <!-- 右カラム：サマリーカード -->
