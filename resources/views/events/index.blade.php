@@ -92,17 +92,21 @@
                 </div>
 
                 <!-- 開催日（from） -->
-                <div>
+                <div class="min-w-0">
                     <label for="from" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">開催日（以降）</label>
-                    <input type="date" id="from" name="from" value="{{ $filters['from'] ?? '' }}"
-                        class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-[#3E3E3A] bg-white dark:bg-[#0a0a0a] text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition [color-scheme:light] dark:[color-scheme:dark]" />
+                    <div class="flex">
+                        <input type="date" id="from" name="from" value="{{ $filters['from'] ?? '' }}"
+                            class="flex-1 min-w-0 px-3 py-2 rounded-lg border border-slate-300 dark:border-[#3E3E3A] bg-white dark:bg-[#0a0a0a] text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition [color-scheme:light_dark]" />
+                    </div>
                 </div>
 
                 <!-- 開催日（to） -->
-                <div>
+                <div class="min-w-0">
                     <label for="to" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">開催日（以前）</label>
-                    <input type="date" id="to" name="to" value="{{ $filters['to'] ?? '' }}"
-                        class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-[#3E3E3A] bg-white dark:bg-[#0a0a0a] text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition [color-scheme:light] dark:[color-scheme:dark]" />
+                    <div class="flex">
+                        <input type="date" id="to" name="to" value="{{ $filters['to'] ?? '' }}"
+                            class="flex-1 min-w-0 px-3 py-2 rounded-lg border border-slate-300 dark:border-[#3E3E3A] bg-white dark:bg-[#0a0a0a] text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition [color-scheme:light_dark]" />
+                    </div>
                 </div>
 
                 <!-- ボタン -->
