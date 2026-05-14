@@ -20,6 +20,10 @@
 
                 <nav class="flex items-center gap-2 sm:gap-3">
                     @auth
+                        <a href="{{ route('events.create') }}"
+                            class="inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium shadow-sm transition-colors">
+                            ＋ イベント作成
+                        </a>
                         <span class="hidden sm:inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                             <span class="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs font-semibold">
                                 {{ mb_substr(auth()->user()->name, 0, 1) }}

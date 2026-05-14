@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\EventCategory;
 use App\Enums\EventStatus;
+use App\Http\Requests\Api\V1\Event\StoreEventRequest;
 use App\Models\Event;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 class EventController extends Controller
@@ -24,6 +27,31 @@ class EventController extends Controller
             ->paginate(self::PER_PAGE);
 
         return view('events.index', compact('events'));
+    }
+
+    /**
+     * イベント作成フォーム
+     */
+    public function create(): View
+    {
+        return view('events.create', [
+            'categories' => EventCategory::cases(),
+            'statuses' => EventStatus::cases(),
+        ]);
+    }
+
+    /**
+     * イベント保存
+     */
+    public function store(StoreEventRequest $request): RedirectResponse
+    {
+        $event = Event::create([
+            ...$request->validated(),
+            'user_id' => auth()->id(),
+            'status' => $request->integer('status', EventStatus::Draft->value),
+        ]);
+
+        return redirect()->route('events.show', $event)->with('success', 'イベントを作成しました。');
     }
 
     /**
