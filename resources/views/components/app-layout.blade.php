@@ -35,6 +35,11 @@
                                 </svg>
                             </summary>
                             <div class="absolute right-0 mt-1 w-44 rounded-xl bg-white dark:bg-[#161615] border border-slate-200 dark:border-[#3E3E3A] shadow-lg py-1 z-50">
+                                <a href="{{ route('profile') }}"
+                                    class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1a1a18] transition-colors">
+                                    プロフィール
+                                </a>
+                                <div class="my-1 border-t border-slate-100 dark:border-[#3E3E3A]"></div>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
                                     <button type="submit"
