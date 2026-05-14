@@ -27,11 +27,11 @@
     <section class="mb-10 lg:mb-12">
         <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 px-6 py-12 sm:px-12 sm:py-16 shadow-xl">
             <div class="absolute inset-0 bg-grid-white/10 [mask-image:radial-gradient(white,transparent_70%)]"></div>
-            <div class="relative max-w-3xl">
+            <div class="relative">
                 <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight">
                     エンジニアのための<br class="sm:hidden">イベントを見つけよう
                 </h1>
-                <p class="mt-4 text-base sm:text-lg text-indigo-100 max-w-2xl">
+                <p class="mt-4 text-base sm:text-lg text-indigo-100">
                     フロントエンド、バックエンド、AI など、興味のある分野の勉強会・ハンズオンに参加できます。
                 </p>
                 <div class="mt-6 flex flex-wrap items-center gap-3 text-sm text-white/90">
