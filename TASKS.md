@@ -66,6 +66,37 @@ API側は実装済み。画面側（Web UI）の対応状況をまとめる。
 
 ---
 
+## 🧹 メンターレビュー対応：不要なAPI削除
+
+Blade（Web UI）で全機能が完結しているため、重複している API 層をまるごと削除する。
+
+### 削除対象（14エンドポイントすべて）
+
+| グループ | エンドポイント |
+|---|---|
+| 認証 | `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/auth/me`, `POST /api/v1/auth/refresh` |
+| イベント | `GET /api/v1/events`, `GET /api/v1/events/{event}`, `POST /api/v1/events`, `PUT /api/v1/events/{event}`, `DELETE /api/v1/events/{event}` |
+| 参加 | `GET /api/v1/events/{event}/attendances`, `POST /api/v1/events/{event}/attendances`, `DELETE /api/v1/events/{event}/attendances` |
+| マイページ | `GET /api/v1/me/attendances` |
+
+### 削除タスク
+
+- [ ] `routes/api.php` を削除（または空に）
+- [ ] `app/Http/Controllers/Api/` ディレクトリごと削除（4ファイル）
+- [ ] `app/Http/Requests/Api/` ディレクトリごと削除（5ファイル）
+- [ ] `app/Http/Resources/Api/` ディレクトリごと削除（4ファイル）
+- [ ] `app/Http/Middleware/EnsureUserIsActive.php` 削除（API でのみ使用）
+- [ ] `bootstrap/app.php` の `active.user` ミドルウェアエイリアス削除
+- [ ] `tests/Feature/Api/` ディレクトリごと削除（4テストファイル）
+- [ ] Sanctum 関連削除：
+  - [ ] `composer remove laravel/sanctum`
+  - [ ] `config/sanctum.php` 削除
+  - [ ] `database/migrations/2026_05_13_063250_create_personal_access_tokens_table.php` 削除
+  - [ ] `app/Models/User.php` の `HasApiTokens` トレイト削除
+- [ ] 全テストを実行して既存機能の破壊がないことを確認（`php artisan test --compact`）
+
+---
+
 ## ✅ 完了済み（API + 画面）
 
 ### API実装
