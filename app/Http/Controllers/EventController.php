@@ -11,10 +11,10 @@ use App\Http\Requests\Event\UpdateEventRequest;
 use App\Models\Event;
 use App\Models\EventAttendance;
 use App\Models\User;
+use App\Services\EventService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Carbon;
 use Symfony\Component\HttpFoundation\Response;
 
 class EventController extends Controller
@@ -23,48 +23,19 @@ class EventController extends Controller
 
     private const int PER_PAGE = 12;
 
+    public function __construct(private readonly EventService $eventService) {}
+
     /**
      * イベント一覧（公開済みのみ、event_date昇順、検索・フィルタ対応）
      */
     public function index(IndexEventRequest $request): View
     {
-        $query = Event::query()
-            ->with('user')
-            ->withCount('appliedAttendances as attendances_count')
-            ->where('status', EventStatus::Published);
+        $filters = $request->validated();
 
-        if ($q = $request->validated('q')) {
-            $query->where(function ($qb) use ($q) {
-                $qb->where('title', 'LIKE', "%{$q}%")
-                    ->orWhere('description', 'LIKE', "%{$q}%");
-            });
-        }
-
-        if ($category = $request->validated('category')) {
-            $query->where('category', EventCategory::from((int) $category));
-        }
-
-        if ($prefecture = $request->validated('prefecture')) {
-            $query->where('prefecture', $prefecture);
-        }
-
-        if ($from = $request->validated('from')) {
-            $query->where('event_date', '>=', Carbon::parse($from));
-        }
-
-        if ($to = $request->validated('to')) {
-            $toDate = Carbon::parse($to);
-            if ($toDate->hour === 0 && $toDate->minute === 0 && $toDate->second === 0) {
-                $toDate = $toDate->endOfDay();
-            }
-            $query->where('event_date', '<=', $toDate);
-        }
-
-        $events = $query->orderBy('event_date', 'asc')
+        $events = $this->eventService
+            ->filteredQuery($filters)
             ->paginate(self::PER_PAGE)
             ->withQueryString();
-
-        $filters = $request->validated();
 
         return view('events.index', compact('events', 'filters'));
     }
