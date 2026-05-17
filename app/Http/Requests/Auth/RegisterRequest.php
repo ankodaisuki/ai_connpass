@@ -1,13 +1,10 @@
 <?php
 
-namespace App\Http\Requests\Api\V1\Auth;
+namespace App\Http\Requests\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
 
-/**
- * ユーザー登録のバリデーション
- */
 class RegisterRequest extends FormRequest
 {
     public function authorize(): bool

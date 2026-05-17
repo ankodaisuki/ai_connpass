@@ -1,14 +1,11 @@
 <?php
 
-namespace App\Http\Requests\Api\V1\Event;
+namespace App\Http\Requests\Event;
 
 use App\Enums\EventCategory;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-/**
- * イベント一覧の検索・フィルタパラメータ検証
- */
 class IndexEventRequest extends FormRequest
 {
     public function authorize(): bool

@@ -1,16 +1,13 @@
 <?php
 
-namespace App\Http\Requests\Api\V1\Event;
+namespace App\Http\Requests\Event;
 
 use App\Enums\EventCategory;
 use App\Enums\EventStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-/**
- * イベント作成のバリデーション
- */
-class StoreEventRequest extends FormRequest
+class UpdateEventRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -30,7 +27,7 @@ class StoreEventRequest extends FormRequest
             'location' => ['required', 'string', 'max:255'],
             'event_date' => ['required', 'date', 'after:now'],
             'capacity' => ['required', 'integer', 'min:1'],
-            'status' => ['nullable', 'integer', Rule::enum(EventStatus::class)],
+            'status' => ['required', 'integer', Rule::enum(EventStatus::class)],
         ];
     }
 }
