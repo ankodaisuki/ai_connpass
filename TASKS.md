@@ -81,23 +81,22 @@ Blade（Web UI）で全機能が完結しているため、重複している AP
 
 ### 削除タスク
 
-- [ ] `routes/api.php` を削除（または空に）
-- [ ] `app/Http/Controllers/Api/` ディレクトリごと削除（4ファイル）
-- [ ] `app/Http/Requests/Api/` ディレクトリごと削除（5ファイル）
-- [ ] `app/Http/Resources/Api/` ディレクトリごと削除（4ファイル）
-- [ ] `app/Http/Middleware/EnsureUserIsActive.php` 削除（API でのみ使用）
-- [ ] `bootstrap/app.php` の `active.user` ミドルウェアエイリアス削除
-- [ ] `tests/Feature/Api/` ディレクトリごと削除（4テストファイル）
-- [ ] Sanctum 関連削除：
-  - [ ] `composer remove laravel/sanctum`
-  - [ ] `config/sanctum.php` 削除
-  - [ ] `database/migrations/2026_05_13_063250_create_personal_access_tokens_table.php` 削除
-  - [ ] `app/Models/User.php` の `HasApiTokens` トレイト削除
-- [ ] 全テストを実行して既存機能の破壊がないことを確認（`php artisan test --compact`）
+- [x] `routes/api.php` を削除
+- [x] `app/Http/Controllers/Api/` ディレクトリごと削除（4ファイル）
+- [x] `app/Http/Requests/Api/` ディレクトリごと削除 → `App\Http\Requests\Auth/`, `Event/` に移動
+- [x] `app/Http/Resources/Api/` ディレクトリごと削除（4ファイル）
+- [x] `app/Http/Middleware/EnsureUserIsActive.php` 削除
+- [x] `bootstrap/app.php` の `active.user` ミドルウェアエイリアス削除
+- [x] `tests/Feature/Api/` ディレクトリごと削除（4テストファイル）
+- [x] Sanctum 関連削除：`composer remove laravel/sanctum`、`config/sanctum.php`、マイグレーション、`HasApiTokens` トレイト
+- [x] 全テストを実行して既存機能の破壊がないことを確認（10件 PASS）
 
 ---
 
 ## ✅ 完了済み（API + 画面）
+
+### メンターレビュー対応
+- [x] 不要なAPI層を削除しBladeに一本化（コミット `c7314b3`）
 
 ### API実装
 - [x] CLAUDE.md に開発ワークフローのルール追加
