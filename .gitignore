@@ -6,7 +6,8 @@
 .phpactor.json
 .phpunit.result.cache
 /.claire
-/.claude/settings.local.json
+/.claude/
+/.superpowers/
 /.codex
 /.playwright-mcp
 /.cursor/
