@@ -51,11 +51,11 @@ API側は実装済み。画面側（Web UI）の対応状況をまとめる。
 API 削除に伴い、同等のカバレッジを持つ Blade 向けテストを新規作成する。
 仕様書: `docs/superpowers/specs/2026-05-17-blade-feature-tests-design.md`
 
-- [ ] `tests/Feature/AuthTest.php` — 認証（登録・ログイン・ログアウト）14件
-- [ ] `tests/Feature/EventTest.php` — イベント CRUD + 検索・フィルタ 42件
-- [ ] `tests/Feature/EventAttendanceTest.php` — 参加申し込み・キャンセル 12件
-- [ ] `tests/Feature/MyAttendanceTest.php` — 自分の申し込み一覧 5件
-- [ ] 全テスト実行して PASS 確認（`php artisan test --compact`）
+- [x] `tests/Feature/AuthTest.php` — 認証（登録・ログイン・ログアウト）14件
+- [x] `tests/Feature/EventTest.php` — イベント CRUD + 検索・フィルタ 42件
+- [x] `tests/Feature/EventAttendanceTest.php` — 参加申し込み・キャンセル 12件
+- [x] `tests/Feature/MyAttendanceTest.php` — 自分の申し込み一覧 5件
+- [x] 全テスト実行して PASS 確認（`php artisan test --compact`）— 83件すべて PASS
 
 ---
 
