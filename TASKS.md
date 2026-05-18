@@ -138,6 +138,41 @@ Blade（Web UI）で全機能が完結しているため、重複している AP
 
 ---
 
+## 🚀 Railway デプロイ（2026-05-18）
+
+### 発生した問題と原因・対応まとめ
+
+#### 1. `MissingAppKeyException`（APP_KEY 未設定）
+- **原因**: Railway の Variables タブに `APP_KEY` を設定していたが、`RAILWAY_BETA_ENABLE_RUNTIME_V2`（新ランタイム Beta）が有効になっており、ユーザー定義の環境変数がコンテナに一切注入されなかった
+- **対応**: Railway Variables に `RAILWAY_BETA_ENABLE_RUNTIME_V2=false` を追加して新ランタイムを無効化。`APP_KEY` が未注入の場合のフォールバック生成も `docker/start.sh` に追加
+
+#### 2. `attempt to write a readonly database`（SQLite 権限エラー）
+- **原因**: 環境変数が未注入のため `DB_CONNECTION=mysql` が届かず、Laravel が SQLite にフォールバック。SQLite ファイルが存在せず書き込みエラーが発生
+- **対応**: `docker/start.sh` で SQLite ファイルを作成し `www-data` に権限付与。根本的には MySQL 接続が正しく渡されれば発生しない
+
+#### 3. CSS/JS が `blocked: mixed-content`
+- **原因**: Railway はリバースプロキシ経由で HTTPS を配信するが、Laravel がプロキシを信頼せず HTTP でアセット URL を生成。ブラウザが HTTPS ページ上の HTTP リソースをブロック
+- **対応**:
+  - `bootstrap/app.php` に `trustProxies` ミドルウェアを追加（`X-Forwarded-*` ヘッダーを信頼）
+  - `APP_URL` を `https://` 付きに更新
+  - `docker/start.sh` で `RAILWAY_PUBLIC_DOMAIN` から `APP_URL` を自動設定するフォールバックを追加
+
+### 変更ファイル一覧
+
+| ファイル | 変更内容 |
+|---|---|
+| `docker/start.sh` | APP_KEY フォールバック生成・APP_URL 自動設定・SQLite 権限付与・`storage:link` 追加 |
+| `docker/nginx.conf` | `error_log /dev/stderr` 追加（Railway ログに nginx エラーを出力） |
+| `bootstrap/app.php` | `trustProxies` ミドルウェア追加（HTTPS 対応） |
+| `compose.yaml` | `compose.local.yaml` にリネーム（Railway の Docker Compose 検出を防止） |
+
+### 残課題
+
+- **環境変数注入の根本問題**: `RAILWAY_BETA_ENABLE_RUNTIME_V2=false` で回避しているが、Railway の新ランタイムで変数が注入されない根本原因は未解明。Railway サポートへの問い合わせを推奨
+- **データベース**: 現状は SQLite で動作中（デプロイのたびにデータがリセット）。MySQL を使うには Railway Variables の `DB_*` が正しく注入されることを確認し、接続を切り替える必要がある
+
+---
+
 ## 📝 開発ワークフロー
 
 各タスク完了時：
