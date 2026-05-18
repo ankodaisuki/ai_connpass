@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP をセットアップ
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite, sqlite3, mbstring, zip, bcmath
+          coverage: none
+
+      - name: Composer キャッシュ
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+
+      - name: Composer インストール
+        run: composer install --no-dev --optimize-autoloader --no-interaction
+
+      - name: .env を準備
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: テスト実行
+        run: php artisan test --compact
