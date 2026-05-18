@@ -11,6 +11,13 @@ if [ -z "$APP_KEY" ]; then
     echo "WARNING: APP_KEY not provided, generated temporarily: ${APP_KEY:0:20}..."
 fi
 
+# SQLite ファイルが存在しない場合は作成して権限付与
+if [ ! -f database/database.sqlite ]; then
+    touch database/database.sqlite
+fi
+chown www-data:www-data database/database.sqlite
+chmod 664 database/database.sqlite
+
 # 設定・ルート・ビューをキャッシュ
 php artisan config:cache
 php artisan route:cache
