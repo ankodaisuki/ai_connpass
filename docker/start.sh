@@ -1,10 +1,10 @@
 #!/bin/sh
 set -e
 
-# 診断: APP_ で始まる全変数名を表示（値は非表示）
-echo "=== APP_ variables in container ==="
-env | grep "^APP_" | cut -d= -f1 | sort || echo "(none)"
-echo "==================================="
+# 診断
+echo "Has .env file: $([ -f .env ] && echo YES || echo NO)"
+echo "DB_HOST in env: $([ -n "$DB_HOST" ] && echo YES || echo NO)"
+echo "APP_KEY in env: $([ -n "$APP_KEY" ] && echo YES || echo NO)"
 
 # 設定・ルート・ビューをキャッシュ
 php artisan config:cache
