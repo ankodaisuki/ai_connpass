@@ -19,7 +19,8 @@ fi
 chown www-data:www-data database/database.sqlite
 chmod 664 database/database.sqlite
 
-# 設定・ルート・ビューをキャッシュ
+# 既存キャッシュをクリアしてから再生成
+php artisan optimize:clear
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
