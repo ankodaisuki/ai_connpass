@@ -2,9 +2,14 @@
 set -e
 
 # 診断
-echo "Has .env file: $([ -f .env ] && echo YES || echo NO)"
-echo "DB_HOST in env: $([ -n "$DB_HOST" ] && echo YES || echo NO)"
-echo "APP_KEY in env: $([ -n "$APP_KEY" ] && echo YES || echo NO)"
+echo "Total env vars: $(env | wc -l)"
+echo "RAILWAY_ vars: $(env | grep "^RAILWAY_" | cut -d= -f1 | tr '\n' ' ' || echo '(none)')"
+
+# APP_KEY が渡されていない場合は生成（セッションはデプロイ毎にリセットされる）
+if [ -z "$APP_KEY" ]; then
+    export APP_KEY=$(php artisan key:generate --show --no-ansi 2>/dev/null | tr -d '[:space:]')
+    echo "WARNING: APP_KEY not provided, generated temporarily: ${APP_KEY:0:20}..."
+fi
 
 # 設定・ルート・ビューをキャッシュ
 php artisan config:cache
