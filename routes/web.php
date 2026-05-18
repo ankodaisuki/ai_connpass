@@ -21,6 +21,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('events/{event}', [EventController::class, 'destroy'])->name('events.destroy');
     Route::post('events/{event}/attendances', [EventAttendanceController::class, 'store'])->name('events.attendances.store');
     Route::delete('events/{event}/attendances', [EventAttendanceController::class, 'destroy'])->name('events.attendances.destroy');
+    Route::get('events/{event}/attendances', fn ($event) => redirect()->route('events.show', $event));
 });
 
 Route::get('events/{event}', [EventController::class, 'show'])->name('events.show');
