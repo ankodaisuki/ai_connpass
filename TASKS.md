@@ -168,8 +168,61 @@ Blade（Web UI）で全機能が完結しているため、重複している AP
 
 ### 残課題
 
-- **環境変数注入の根本問題**: `RAILWAY_BETA_ENABLE_RUNTIME_V2=false` で回避しているが、Railway の新ランタイムで変数が注入されない根本原因は未解明。Railway サポートへの問い合わせを推奨
-- **データベース**: 現状は SQLite で動作中（デプロイのたびにデータがリセット）。MySQL を使うには Railway Variables の `DB_*` が正しく注入されることを確認し、接続を切り替える必要がある
+- **環境変数注入の根本問題**: Railway UI の Variables タブから設定した変数はコンテナに注入されなかった。Railway CLI（`railway variables set`）で設定することで解決
+
+### Railway MySQL への接続方法
+
+#### 前提：mysql クライアントのインストール（Mac）
+
+```bash
+brew install mysql-client
+echo 'export PATH="/usr/local/opt/mysql-client/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+#### Railway CLI のインストールと接続
+
+```bash
+# Railway CLI インストール
+npm install -g @railway/cli
+
+# ログイン・プロジェクトリンク
+railway login
+railway link
+
+# MySQL に接続（Railway の Connect タブの「Raw mysql command」を参考に）
+# ※ -p とパスワードの間はスペースなし
+mysql -h <HOST> -u root -p<PASSWORD> --port <PORT> --protocol=TCP railway
+```
+
+#### よく使う SQL
+
+```sql
+SHOW TABLES;
+SELECT * FROM events LIMIT 10;
+SELECT * FROM users LIMIT 10;
+```
+
+#### 環境変数を CLI で設定する方法
+
+Railway UI の Variables タブではなく CLI で設定すると確実に反映される：
+
+```bash
+railway variables set APP_KEY=base64:...
+railway variables set DB_CONNECTION=mysql
+railway variables set DB_HOST=mysql.railway.internal
+railway variables set DB_DATABASE=railway
+railway variables set DB_USERNAME=root
+railway variables set "DB_PASSWORD=..."
+railway variables set APP_ENV=production
+railway variables set APP_DEBUG=false
+railway variables set "APP_URL=https://xxxx.up.railway.app"
+railway variables set SESSION_DRIVER=database
+railway variables set CACHE_STORE=database
+railway variables set QUEUE_CONNECTION=database
+railway variables set LOG_CHANNEL=stderr
+railway variables set RAILWAY_BETA_ENABLE_RUNTIME_V2=false
+```
 
 ---
 
