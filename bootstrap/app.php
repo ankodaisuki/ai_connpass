@@ -18,12 +18,5 @@ return Application::configure(basePath: dirname(__DIR__))
             Request::HEADER_X_FORWARDED_PROTO);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // 一時的な診断コード（確認後に削除）
-        $exceptions->render(function (Throwable $e, $request) {
-            return response(
-                get_class($e).': '.$e->getMessage()."\nFile: ".$e->getFile().':'.$e->getLine(),
-                500,
-                ['Content-Type' => 'text/plain']
-            );
-        });
+        //
     })->create();
