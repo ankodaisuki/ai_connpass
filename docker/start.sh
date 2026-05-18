@@ -18,10 +18,19 @@ fi
 chown www-data:www-data database/database.sqlite
 chmod 664 database/database.sqlite
 
+# RAILWAY_PUBLIC_DOMAIN が提供されている場合は APP_URL を設定
+if [ -z "$APP_URL" ] && [ -n "$RAILWAY_PUBLIC_DOMAIN" ]; then
+    export APP_URL="https://${RAILWAY_PUBLIC_DOMAIN}"
+    echo "APP_URL set from RAILWAY_PUBLIC_DOMAIN: $APP_URL"
+fi
+
 # 設定・ルート・ビューをキャッシュ
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
+
+# ストレージリンクを作成
+php artisan storage:link --force
 
 # マイグレーションを実行
 php artisan migrate --force
