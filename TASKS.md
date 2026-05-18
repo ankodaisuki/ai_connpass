@@ -226,6 +226,29 @@ railway variables set RAILWAY_BETA_ENABLE_RUNTIME_V2=false
 
 ---
 
+## ⚙️ GitHub Actions CI 導入（2026-05-18）
+
+`main` ブランチへの push・PR 時に自動でテストが実行される仕組みを追加。
+
+### 設定ファイル
+
+`.github/workflows/ci.yml`
+
+### 実行内容
+
+1. PHP 8.4 セットアップ
+2. `composer install`
+3. `.env` 生成・`APP_KEY` 発行
+4. `php artisan test --compact`（83件、SQLite インメモリで実行）
+
+### 動作確認方法
+
+GitHub リポジトリの **Actions タブ**で結果を確認。
+- ✅ 成功：テスト全件 PASS
+- ❌ 失敗：テスト失敗（デプロイ前に気づける）
+
+---
+
 ## 📝 開発ワークフロー
 
 各タスク完了時：
