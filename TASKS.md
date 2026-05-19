@@ -249,6 +249,41 @@ GitHub リポジトリの **Actions タブ**で結果を確認。
 
 ---
 
+---
+
+## 🛠️ Claude Code Skills 管理（2026-05-19）
+
+プロジェクト専用のスキルを `.claude/skills/` ディレクトリに追加。
+
+### 追加スキル一覧
+
+#### Laravel エコシステム（5つ）
+- `laravel-best-practices` — Laravel PHP コードのベストプラクティス（既存）
+- `laravel-plugin-discovery` — LaraPlugins.io MCP でパッケージ検索・評価
+- `laravel-security` — 認証、検証、CSRF、ファイルアップロード、レート制限
+- `laravel-tdd` — PHPUnit/Pest による TDD ワークフロー（80%+ カバレッジ）
+- `laravel-verification` — デプロイ前の検証ループ（lint、テスト、セキュリティ、本番対応）
+
+#### API・バックエンド設計（2つ）
+- `api-design` — REST API 設計パターン（リソース命名、HTTP セマンティクス、ページネーション）
+- `backend-patterns` — バックエンド開発パターン（キャッシング、認証、レート制限、ログ）
+
+#### デプロイ・インフラ（2つ）
+- `deployment-patterns` — デプロイ戦略（Rolling、Blue-Green、Canary）・CI/CD パイプライン
+- `docker-patterns` — Docker・Docker Compose ベストプラクティス（マルチステージビルド、セキュリティ）
+
+#### テスト（1つ）
+- `e2e-testing` — Playwright E2E テスト（Page Object Model、CI/CD 統合）
+
+#### フロントエンド（1つ）
+- `tailwindcss-development` — Tailwind CSS v4 開発（既存）
+
+### 合計 11 個のスキル
+
+これらのスキルは対応する作業を行う際に自動的に活動化される（例：Laravel コード作成時に `laravel-best-practices`、API 設計時に `api-design` が自動呼び出し）。
+
+---
+
 ## 📝 開発ワークフロー
 
 各タスク完了時：
