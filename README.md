@@ -41,6 +41,33 @@ php artisan boost:install
 
 Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
 
+## 🛠️ Claude Code Skills セットアップ
+
+このプロジェクトには、Laravel開発向けのカスタムスキルが含まれています。
+
+### セットアップ手順
+
+初回クローン後、以下を実行してください：
+
+```bash
+bash setup-skills.sh
+```
+
+このスクリプトは `skills/` ディレクトリを `.claude/skills/` にコピーします。
+コピー後、Claude Code はこれらのスキルを自動的に読み込みます。
+
+### 含まれるスキル
+
+- **laravel-plugin-discovery** — LaraPlugins.io MCPでパッケージ検索・評価
+- **laravel-security** — 認証、検証、CSRF、セキュリティベストプラクティス
+- **laravel-tdd** — PHPUnit/Pestによる TDDワークフロー
+- **laravel-verification** — デプロイ前の検証ループ
+- **api-design** — REST API設計パターン
+- **backend-patterns** — バックエンド開発パターン
+- **deployment-patterns** — デプロイ戦略・CI/CDパイプライン
+- **docker-patterns** — Dockerベストプラクティス
+- **e2e-testing** — Playwright E2Eテスト
+
 ## Contributing
 
 Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
