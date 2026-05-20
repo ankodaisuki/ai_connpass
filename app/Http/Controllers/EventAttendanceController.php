@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Enums\EventStatus;
 use App\Exceptions\AttendanceException;
 use App\Models\Event;
+use App\Models\EventAttendance;
 use App\Models\User;
 use App\Services\EventAttendanceService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class EventAttendanceController extends Controller
@@ -33,6 +35,29 @@ class EventAttendanceController extends Controller
         }
 
         return back()->with('success', '参加申し込みが完了しました。');
+    }
+
+    /**
+     * 出欠記録の更新（トグル）
+     */
+    public function update(Request $request, Event $event, EventAttendance $attendance): RedirectResponse
+    {
+        $this->authorize('updateAttendance', $event);
+
+        if ($attendance->event_id !== $event->id) {
+            abort(404);
+        }
+
+        $attendedAt = $request->input('attended_at');
+
+        if ($attendedAt === 'null') {
+            $attendance->update(['attended_at' => null]);
+        } else {
+            $attendance->update(['attended_at' => now()]);
+        }
+
+        return redirect()->route('events.show', $event)
+            ->with('success', '出欠を記録しました');
     }
 
     /**
