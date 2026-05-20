@@ -27,4 +27,12 @@ class EventPolicy
     {
         return $user->id === $event->user_id;
     }
+
+    /**
+     * 出欠記録は作成者本人のみ許可
+     */
+    public function updateAttendance(User $user, Event $event): bool
+    {
+        return $user->id === $event->user_id;
+    }
 }
