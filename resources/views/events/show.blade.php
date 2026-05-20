@@ -260,6 +260,12 @@
                     出欠管理
                 </h2>
 
+                @unless ($isPast)
+                    <p class="mb-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
+                        出欠の記録はイベント開始時刻（{{ $event->event_date->format('Y/m/d H:i') }}）以降に可能になります。
+                    </p>
+                @endunless
+
                 <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">参加者</h3>
                 <div class="space-y-2">
                     @forelse($event->attendances()->where('status', \App\Enums\AttendanceStatus::Applied)->with('user')->get() as $attendance)
@@ -275,7 +281,8 @@
                                     <input type="hidden" name="attended_at" value="{{ now()->format('Y-m-d H:i:s') }}">
                                     <button
                                         type="submit"
-                                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {{ $attendance->attended_at ? 'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-600 dark:hover:bg-emerald-700' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600' }}"
+                                        @disabled(! $isPast)
+                                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {{ ! $isPast ? 'opacity-50 cursor-not-allowed ' : '' }}{{ $attendance->attended_at ? 'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-600 dark:hover:bg-emerald-700' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600' }}"
                                     >
                                         {{ $attendance->attended_at ? '✓ 参加' : '参加' }}
                                     </button>
@@ -287,7 +294,8 @@
                                     <input type="hidden" name="attended_at" value="null">
                                     <button
                                         type="submit"
-                                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {{ ! $attendance->attended_at ? 'bg-slate-500 dark:bg-slate-600 text-white hover:bg-slate-600 dark:hover:bg-slate-700' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600' }}"
+                                        @disabled(! $isPast)
+                                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {{ ! $isPast ? 'opacity-50 cursor-not-allowed ' : '' }}{{ ! $attendance->attended_at ? 'bg-slate-500 dark:bg-slate-600 text-white hover:bg-slate-600 dark:hover:bg-slate-700' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600' }}"
                                     >
                                         {{ ! $attendance->attended_at ? '✓ 未参加' : '未参加' }}
                                     </button>

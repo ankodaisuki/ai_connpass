@@ -263,7 +263,10 @@ class EventAttendanceTest extends TestCase
     {
         $organizer = User::factory()->create();
         $attendee = User::factory()->create();
-        $event = Event::factory()->create(['user_id' => $organizer->id]);
+        $event = Event::factory()->create([
+            'user_id' => $organizer->id,
+            'event_date' => now()->subHour(),
+        ]);
         $attendance = EventAttendance::factory()->create([
             'event_id' => $event->id,
             'user_id' => $attendee->id,
@@ -284,7 +287,10 @@ class EventAttendanceTest extends TestCase
     {
         $organizer = User::factory()->create();
         $attendee = User::factory()->create();
-        $event = Event::factory()->create(['user_id' => $organizer->id]);
+        $event = Event::factory()->create([
+            'user_id' => $organizer->id,
+            'event_date' => now()->subHour(),
+        ]);
         $attendance = EventAttendance::factory()->create([
             'event_id' => $event->id,
             'user_id' => $attendee->id,
@@ -319,6 +325,32 @@ class EventAttendanceTest extends TestCase
             ]);
 
         $response->assertForbidden();
+        $this->assertNull($attendance->refresh()->attended_at);
+    }
+
+    /** イベント開始前は主催者でも出欠を記録できない */
+    public function test_organizer_cannot_mark_attendance_before_event_start(): void
+    {
+        $organizer = User::factory()->create();
+        $attendee = User::factory()->create();
+        $event = Event::factory()->create([
+            'user_id' => $organizer->id,
+            'event_date' => now()->addDays(3),
+        ]);
+        $attendance = EventAttendance::factory()->create([
+            'event_id' => $event->id,
+            'user_id' => $attendee->id,
+            'attended_at' => null,
+        ]);
+
+        $response = $this->actingAs($organizer)
+            ->from(route('events.show', $event))
+            ->patch(route('events.attendances.update', [$event, $attendance]), [
+                'attended_at' => now()->format('Y-m-d H:i:s'),
+            ]);
+
+        $response->assertRedirect(route('events.show', $event));
+        $response->assertSessionHasErrors(['attendance']);
         $this->assertNull($attendance->refresh()->attended_at);
     }
 
