@@ -349,7 +349,7 @@ class EventAttendanceTest extends TestCase
             'user_id' => $attendee->id,
         ]);
 
-        $attendance->delete();
+        $attendance->update(['status' => AttendanceStatus::Cancelled]);
 
         $response = $this->actingAs($organizer)
             ->get(route('events.show', $event));

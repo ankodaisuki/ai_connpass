@@ -255,7 +255,7 @@
 
                 <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">参加者</h3>
                 <div class="space-y-2">
-                    @forelse($event->attendances()->whereNull('deleted_at')->get() as $attendance)
+                    @forelse($event->attendances()->where('status', \App\Enums\AttendanceStatus::Applied)->with('user')->get() as $attendance)
                         <div class="flex items-center gap-3 rounded-xl border border-slate-100 dark:border-[#3E3E3A] bg-slate-50 dark:bg-[#1a1a18] p-3">
                             <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs font-semibold">
                                 {{ mb_substr($attendance->user->name, 0, 1) }}
@@ -292,11 +292,11 @@
                     @endforelse
                 </div>
 
-                @if ($event->attendances()->onlyTrashed()->exists())
+                @if ($event->attendances()->where('status', \App\Enums\AttendanceStatus::Cancelled)->exists())
                     <div class="mt-6">
                         <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">キャンセル一覧</h3>
                         <div class="space-y-2">
-                            @foreach($event->attendances()->onlyTrashed()->get() as $attendance)
+                            @foreach($event->attendances()->where('status', \App\Enums\AttendanceStatus::Cancelled)->with('user')->get() as $attendance)
                                 <div class="flex items-center gap-3 rounded-xl border border-slate-100 dark:border-[#3E3E3A] bg-slate-50 dark:bg-[#1a1a18] p-3 opacity-60">
                                     <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs font-semibold">
                                         {{ mb_substr($attendance->user->name, 0, 1) }}
