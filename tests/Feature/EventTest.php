@@ -388,7 +388,7 @@ class EventTest extends TestCase
             'location' => '渋谷区',
             'event_date' => now()->addDays(5)->toDateTimeString(),
             'capacity' => 10,
-        ])->assertSessionHasErrors(['title']);
+        ])->assertSessionHasErrors(['title' => 'タイトルは必須です。']);
     }
 
     /** event_date が過去 → event_date バリデーションエラー */
