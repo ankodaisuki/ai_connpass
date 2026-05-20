@@ -245,24 +245,30 @@
 
     {{-- 出欠管理（主催者のみ） --}}
     @can('updateAttendance', $event)
-        <div class="mt-12 border-t pt-8">
-            <h2 class="text-2xl font-bold mb-6">出欠管理</h2>
-
+        <div class="mt-8 space-y-6">
             {{-- 参加者セクション --}}
-            <div class="mb-8">
-                <h3 class="text-lg font-semibold mb-4">参加者</h3>
-                <div class="space-y-3">
+            <section class="rounded-2xl bg-white dark:bg-[#161615] border border-slate-200 dark:border-[#3E3E3A] p-6 sm:p-8 shadow-sm">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                    <span class="h-1 w-6 rounded-full bg-gradient-to-r {{ $style['gradient'] }}"></span>
+                    出欠管理
+                </h2>
+
+                <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">参加者</h3>
+                <div class="space-y-2">
                     @forelse($event->attendances()->whereNull('deleted_at')->get() as $attendance)
-                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
-                            <span class="font-medium">{{ $attendance->user->name }}</span>
-                            <div class="flex gap-2">
+                        <div class="flex items-center gap-3 rounded-xl border border-slate-100 dark:border-[#3E3E3A] bg-slate-50 dark:bg-[#1a1a18] p-3">
+                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs font-semibold">
+                                {{ mb_substr($attendance->user->name, 0, 1) }}
+                            </span>
+                            <span class="flex-1 text-sm font-medium text-slate-800 dark:text-slate-200">{{ $attendance->user->name }}</span>
+                            <div class="flex gap-2 shrink-0">
                                 <form method="POST" action="{{ route('events.attendances.update', [$event, $attendance]) }}" class="inline">
                                     @csrf
                                     @method('PATCH')
                                     <input type="hidden" name="attended_at" value="{{ now()->format('Y-m-d H:i:s') }}">
                                     <button
                                         type="submit"
-                                        class="px-3 py-1 rounded text-sm font-medium transition-colors {{ $attendance->attended_at ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}"
+                                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {{ $attendance->attended_at ? 'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-600 dark:hover:bg-emerald-700' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600' }}"
                                     >
                                         {{ $attendance->attended_at ? '✓ 参加' : '参加' }}
                                     </button>
@@ -274,7 +280,7 @@
                                     <input type="hidden" name="attended_at" value="null">
                                     <button
                                         type="submit"
-                                        class="px-3 py-1 rounded text-sm font-medium transition-colors {{ ! $attendance->attended_at ? 'bg-gray-400 text-white hover:bg-gray-500' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}"
+                                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {{ ! $attendance->attended_at ? 'bg-slate-500 dark:bg-slate-600 text-white hover:bg-slate-600 dark:hover:bg-slate-700' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600' }}"
                                     >
                                         {{ ! $attendance->attended_at ? '✓ 未参加' : '未参加' }}
                                     </button>
@@ -282,25 +288,27 @@
                             </div>
                         </div>
                     @empty
-                        <p class="text-gray-500">参加者がいません</p>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 italic">参加者がいません</p>
                     @endforelse
                 </div>
-            </div>
 
-            {{-- キャンセル一覧セクション --}}
-            <div>
-                <h3 class="text-lg font-semibold mb-4">キャンセル一覧</h3>
-                <div class="space-y-3">
-                    @forelse($event->attendances()->onlyTrashed()->get() as $attendance)
-                        <div class="flex justify-between items-center p-3 bg-gray-100 rounded opacity-75">
-                            <span class="text-gray-700">{{ $attendance->user->name }}</span>
-                            <span class="text-sm text-gray-600">キャンセル済み</span>
+                @if ($event->attendances()->onlyTrashed()->exists())
+                    <div class="mt-6">
+                        <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">キャンセル一覧</h3>
+                        <div class="space-y-2">
+                            @foreach($event->attendances()->onlyTrashed()->get() as $attendance)
+                                <div class="flex items-center gap-3 rounded-xl border border-slate-100 dark:border-[#3E3E3A] bg-slate-50 dark:bg-[#1a1a18] p-3 opacity-60">
+                                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs font-semibold">
+                                        {{ mb_substr($attendance->user->name, 0, 1) }}
+                                    </span>
+                                    <span class="flex-1 text-sm text-slate-600 dark:text-slate-400">{{ $attendance->user->name }}</span>
+                                    <span class="text-xs text-slate-400 dark:text-slate-500 shrink-0">キャンセル済み</span>
+                                </div>
+                            @endforeach
                         </div>
-                    @empty
-                        <p class="text-gray-500">キャンセル者はいません</p>
-                    @endforelse
-                </div>
-            </div>
+                    </div>
+                @endif
+            </section>
         </div>
     @endcan
 </x-app-layout>
