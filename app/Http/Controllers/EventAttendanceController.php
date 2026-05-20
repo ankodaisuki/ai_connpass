@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\EventAttendanceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\Response;
 
 class EventAttendanceController extends Controller
@@ -42,7 +43,7 @@ class EventAttendanceController extends Controller
      */
     public function update(Request $request, Event $event, EventAttendance $attendance): RedirectResponse
     {
-        $this->authorize('updateAttendance', $event);
+        Gate::authorize('updateAttendance', $event);
 
         if ($attendance->event_id !== $event->id) {
             abort(404);

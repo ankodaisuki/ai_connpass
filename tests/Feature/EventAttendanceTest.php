@@ -233,4 +233,127 @@ class EventAttendanceTest extends TestCase
             ->assertRedirect(route('events.show', $event))
             ->assertSessionHasErrors(['attendance']);
     }
+
+    // ==========================================
+    // update - 出欠管理（UC5）
+    // ==========================================
+
+    /** 主催者が参加者を「参加済み」にマークできる */
+    public function test_organizer_can_mark_attendance_as_attended(): void
+    {
+        $organizer = User::factory()->create();
+        $attendee = User::factory()->create();
+        $event = Event::factory()->create(['user_id' => $organizer->id]);
+        $attendance = EventAttendance::factory()->create([
+            'event_id' => $event->id,
+            'user_id' => $attendee->id,
+            'attended_at' => null,
+        ]);
+
+        $response = $this->actingAs($organizer)
+            ->patch(route('events.attendances.update', [$event, $attendance]), [
+                'attended_at' => now()->format('Y-m-d H:i:s'),
+            ]);
+
+        $response->assertRedirect(route('events.show', $event));
+        $this->assertNotNull($attendance->refresh()->attended_at);
+    }
+
+    /** 主催者が参加済みを「未参加」にクリアできる */
+    public function test_organizer_can_clear_attendance(): void
+    {
+        $organizer = User::factory()->create();
+        $attendee = User::factory()->create();
+        $event = Event::factory()->create(['user_id' => $organizer->id]);
+        $attendance = EventAttendance::factory()->create([
+            'event_id' => $event->id,
+            'user_id' => $attendee->id,
+            'attended_at' => now(),
+        ]);
+
+        $response = $this->actingAs($organizer)
+            ->patch(route('events.attendances.update', [$event, $attendance]), [
+                'attended_at' => 'null',
+            ]);
+
+        $response->assertRedirect(route('events.show', $event));
+        $this->assertNull($attendance->refresh()->attended_at);
+    }
+
+    /** 主催者以外は出欠記録を変更できない */
+    public function test_non_organizer_cannot_mark_attendance(): void
+    {
+        $organizer = User::factory()->create();
+        $other_user = User::factory()->create();
+        $attendee = User::factory()->create();
+        $event = Event::factory()->create(['user_id' => $organizer->id]);
+        $attendance = EventAttendance::factory()->create([
+            'event_id' => $event->id,
+            'user_id' => $attendee->id,
+            'attended_at' => null,
+        ]);
+
+        $response = $this->actingAs($other_user)
+            ->patch(route('events.attendances.update', [$event, $attendance]), [
+                'attended_at' => now()->format('Y-m-d H:i:s'),
+            ]);
+
+        $response->assertForbidden();
+        $this->assertNull($attendance->refresh()->attended_at);
+    }
+
+    /** 主催者はイベント詳細に出欠管理セクションが表示される */
+    public function test_organizer_sees_attendance_section_on_event_detail(): void
+    {
+        $organizer = User::factory()->create();
+        $attendee = User::factory()->create();
+        $event = Event::factory()->create(['user_id' => $organizer->id]);
+        EventAttendance::factory()->create([
+            'event_id' => $event->id,
+            'user_id' => $attendee->id,
+        ]);
+
+        $response = $this->actingAs($organizer)
+            ->get(route('events.show', $event));
+
+        $response->assertSee('出欠管理');
+        $response->assertSee($attendee->name);
+    }
+
+    /** 主催者以外には出欠管理セクションが表示されない */
+    public function test_non_organizer_does_not_see_attendance_section(): void
+    {
+        $organizer = User::factory()->create();
+        $other_user = User::factory()->create();
+        $attendee = User::factory()->create();
+        $event = Event::factory()->create(['user_id' => $organizer->id]);
+        EventAttendance::factory()->create([
+            'event_id' => $event->id,
+            'user_id' => $attendee->id,
+        ]);
+
+        $response = $this->actingAs($other_user)
+            ->get(route('events.show', $event));
+
+        $response->assertDontSee('出欠管理');
+    }
+
+    /** キャンセルした参加者はキャンセル一覧に表示される */
+    public function test_cancelled_attendee_appears_in_cancelled_list(): void
+    {
+        $organizer = User::factory()->create();
+        $attendee = User::factory()->create();
+        $event = Event::factory()->create(['user_id' => $organizer->id]);
+        $attendance = EventAttendance::factory()->create([
+            'event_id' => $event->id,
+            'user_id' => $attendee->id,
+        ]);
+
+        $attendance->delete();
+
+        $response = $this->actingAs($organizer)
+            ->get(route('events.show', $event));
+
+        $response->assertSee('キャンセル一覧');
+    }
 }
