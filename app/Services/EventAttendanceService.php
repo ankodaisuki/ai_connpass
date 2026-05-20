@@ -66,10 +66,6 @@ class EventAttendanceService
      */
     public function cancel(Event $event, User $user): void
     {
-        if ($event->event_date->isPast()) {
-            throw new AttendanceException('このイベントはすでに開始しています。');
-        }
-
         $attendance = EventAttendance::query()
             ->where('event_id', $event->id)
             ->where('user_id', $user->id)
@@ -78,6 +74,14 @@ class EventAttendanceService
 
         if ($attendance === null) {
             throw new AttendanceException('申し込みが見つかりません。');
+        }
+
+        if ($event->event_date->isPast() && $attendance->attended_at !== null) {
+            throw new AttendanceException('出席済みのためキャンセルできません。');
+        }
+
+        if ($event->event_date->isPast()) {
+            throw new AttendanceException('このイベントはすでに開始しています。');
         }
 
         $attendance->update([

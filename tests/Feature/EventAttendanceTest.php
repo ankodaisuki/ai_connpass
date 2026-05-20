@@ -234,6 +234,26 @@ class EventAttendanceTest extends TestCase
             ->assertSessionHasErrors(['attendance']);
     }
 
+    /** 出席済み（attended_at あり）の場合は開始後にキャンセルできない */
+    public function test_destroy_fails_when_attended_after_event_start(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->subDays(1),
+        ]);
+        $applicant = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($applicant)->create([
+            'attended_at' => now()->subDays(1),
+        ]);
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->delete(route('events.attendances.destroy', $event))
+            ->assertRedirect(route('events.show', $event))
+            ->assertSessionHasErrors(['attendance']);
+    }
+
     // ==========================================
     // update - 出欠管理（UC5）
     // ==========================================
