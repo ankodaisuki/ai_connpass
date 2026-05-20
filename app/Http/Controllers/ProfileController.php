@@ -19,7 +19,7 @@ class ProfileController extends Controller
             ->orderBy('event_date', 'desc')
             ->get();
 
-        $attendanceCount = $user->eventAttendances()->count();
+        $attendanceCount = $user->eventAttendances()->appliedToPublishedEvent()->count();
 
         return view('profile.show', compact('user', 'events', 'attendanceCount'));
     }

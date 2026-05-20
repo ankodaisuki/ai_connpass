@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\AttendanceStatus;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 
@@ -14,8 +13,7 @@ class MyAttendanceController extends Controller
         $user = auth()->user();
 
         $attendances = $user->eventAttendances()
-            ->where('status', AttendanceStatus::Applied)
-            ->whereHas('event')
+            ->appliedToPublishedEvent()
             ->with('event.user')
             ->orderBy('applied_at', 'asc')
             ->paginate(15);

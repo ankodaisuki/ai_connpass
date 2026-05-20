@@ -3,8 +3,11 @@
 namespace App\Models;
 
 use App\Enums\AttendanceStatus;
+use App\Enums\EventStatus;
 use Database\Factories\EventAttendanceFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -36,6 +39,19 @@ class EventAttendance extends Model
             'attended_at' => 'datetime',
             'status' => AttendanceStatus::class,
         ];
+    }
+
+    /**
+     * 申し込み中（Applied）かつ公開中（Published）イベントの参加レコードに限定する。
+     * 参加者向けの一覧表示とカウントを同一条件に揃えるためのスコープ。
+     */
+    #[Scope]
+    protected function appliedToPublishedEvent(Builder $query): void
+    {
+        $query->where('status', AttendanceStatus::Applied)
+            ->whereHas('event', function (Builder $query): void {
+                $query->where('status', EventStatus::Published);
+            });
     }
 
     /**

@@ -52,6 +52,27 @@ class MyAttendanceTest extends TestCase
         $response->assertDontSee('others-event');
     }
 
+    /** 非公開・下書きイベントは一覧から除外される */
+    public function test_index_excludes_non_published_events(): void
+    {
+        $user = User::factory()->create();
+        $organizer = User::factory()->create();
+
+        $published = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'title' => 'published-event']);
+        $private = Event::factory()->for($organizer)->create(['status' => EventStatus::Private, 'title' => 'private-event']);
+        $draft = Event::factory()->for($organizer)->create(['status' => EventStatus::Draft, 'title' => 'draft-event']);
+
+        EventAttendance::factory()->for($published)->for($user)->create();
+        EventAttendance::factory()->for($private)->for($user)->create();
+        EventAttendance::factory()->for($draft)->for($user)->create();
+
+        $response = $this->actingAs($user)->get(route('my.attendances'));
+
+        $response->assertSee('published-event');
+        $response->assertDontSee('private-event');
+        $response->assertDontSee('draft-event');
+    }
+
     /** 15 件/ページ（16件 → 1ページ目に 15件・2ページ目に 1件） */
     public function test_index_paginates_with_15_per_page(): void
     {
