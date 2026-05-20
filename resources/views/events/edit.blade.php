@@ -111,18 +111,20 @@
                 </div>
 
                 <!-- 開催日時 -->
-                <div>
+                <div class="min-w-0">
                     <label for="event_date" class="block text-sm font-medium mb-1.5 text-slate-700 dark:text-slate-300">
                         開催日時 <span class="text-red-500">*</span>
                     </label>
-                    <input
-                        type="datetime-local"
-                        id="event_date"
-                        name="event_date"
-                        value="{{ old('event_date', $event->event_date->format('Y-m-d\TH:i')) }}"
-                        class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-[#3E3E3A] bg-white dark:bg-[#0a0a0a] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition [color-scheme:light_dark] @error('event_date') border-red-500 focus:ring-red-500 @enderror"
-                        required
-                    />
+                    <div class="flex">
+                        <input
+                            type="datetime-local"
+                            id="event_date"
+                            name="event_date"
+                            value="{{ old('event_date', $event->event_date->format('Y-m-d\TH:i')) }}"
+                            class="flex-1 min-w-0 px-4 py-2.5 rounded-lg border border-slate-300 dark:border-[#3E3E3A] bg-white dark:bg-[#0a0a0a] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition [color-scheme:light_dark] @error('event_date') border-red-500 focus:ring-red-500 @enderror"
+                            required
+                        />
+                    </div>
                     @error('event_date')
                         <p class="text-red-500 text-sm mt-1.5">{{ $message }}</p>
                     @enderror
