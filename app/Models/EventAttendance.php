@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'status',
     'applied_at',
     'cancelled_at',
+    'attended_at',
 ])]
 class EventAttendance extends Model
 {
@@ -32,6 +33,7 @@ class EventAttendance extends Model
         return [
             'applied_at' => 'datetime',
             'cancelled_at' => 'datetime',
+            'attended_at' => 'datetime',
             'status' => AttendanceStatus::class,
         ];
     }
