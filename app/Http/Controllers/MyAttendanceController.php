@@ -20,4 +20,18 @@ class MyAttendanceController extends Controller
 
         return view('my.attendances', compact('attendances'));
     }
+
+    public function attended(): View
+    {
+        /** @var User $user */
+        $user = auth()->user();
+
+        $attendances = $user->eventAttendances()
+            ->attendedPastPublishedEvent()
+            ->with('event.user')
+            ->orderByDesc('attended_at')
+            ->paginate(15);
+
+        return view('my.attended-events', compact('attendances'));
+    }
 }

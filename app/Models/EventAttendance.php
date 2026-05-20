@@ -55,6 +55,20 @@ class EventAttendance extends Model
     }
 
     /**
+     * 出席記録済み（attended_at あり）かつ開催済み・公開中イベントの参加レコードに限定する。
+     * 「過去に参加したイベント」一覧用のスコープ。
+     */
+    #[Scope]
+    protected function attendedPastPublishedEvent(Builder $query): void
+    {
+        $query->whereNotNull('attended_at')
+            ->whereHas('event', function (Builder $query): void {
+                $query->where('status', EventStatus::Published)
+                    ->where('event_date', '<', now());
+            });
+    }
+
+    /**
      * 申し込み対象のイベント
      *
      * @return BelongsTo<Event, $this>

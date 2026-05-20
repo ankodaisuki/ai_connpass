@@ -118,4 +118,58 @@ class MyAttendanceTest extends TestCase
 
         $this->assertLessThan(strpos($content, 'later-applied'), strpos($content, 'sooner-applied'));
     }
+
+    // ==========================================
+    // attended - 過去に参加したイベント
+    // ==========================================
+
+    /** ゲストは過去に参加したイベントにアクセスできない（login へリダイレクト） */
+    public function test_attended_requires_auth(): void
+    {
+        $this->get(route('my.attended-events'))->assertRedirect(route('login'));
+    }
+
+    /** 認証済みユーザーは 200 でアクセスできる */
+    public function test_attended_returns_200_for_auth_user(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->get(route('my.attended-events'))->assertStatus(200);
+    }
+
+    /** 出席記録済み・開催済み・公開中のイベントのみ表示する */
+    public function test_attended_shows_only_attended_past_published_events(): void
+    {
+        $user = User::factory()->create();
+        $organizer = User::factory()->create();
+        $other = User::factory()->create();
+
+        $attendedPast = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'event_date' => now()->subDays(2), 'title' => 'attended-past-event']);
+        $notAttendedPast = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'event_date' => now()->subDays(2), 'title' => 'not-attended-event']);
+        $attendedFuture = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'event_date' => now()->addDays(2), 'title' => 'attended-future-event']);
+        $attendedPrivate = Event::factory()->for($organizer)->create(['status' => EventStatus::Private, 'event_date' => now()->subDays(2), 'title' => 'attended-private-event']);
+        $attendedDraft = Event::factory()->for($organizer)->create(['status' => EventStatus::Draft, 'event_date' => now()->subDays(2), 'title' => 'attended-draft-event']);
+        $attendedDeleted = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'event_date' => now()->subDays(2), 'title' => 'attended-deleted-event']);
+        $othersAttended = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'event_date' => now()->subDays(2), 'title' => 'others-attended-event']);
+
+        EventAttendance::factory()->for($attendedPast)->for($user)->attended()->create();
+        EventAttendance::factory()->for($notAttendedPast)->for($user)->create();
+        EventAttendance::factory()->for($attendedFuture)->for($user)->attended()->create();
+        EventAttendance::factory()->for($attendedPrivate)->for($user)->attended()->create();
+        EventAttendance::factory()->for($attendedDraft)->for($user)->attended()->create();
+        EventAttendance::factory()->for($attendedDeleted)->for($user)->attended()->create();
+        EventAttendance::factory()->for($othersAttended)->for($other)->attended()->create();
+
+        $attendedDeleted->delete();
+
+        $response = $this->actingAs($user)->get(route('my.attended-events'));
+
+        $response->assertSee('attended-past-event');
+        $response->assertDontSee('not-attended-event');
+        $response->assertDontSee('attended-future-event');
+        $response->assertDontSee('attended-private-event');
+        $response->assertDontSee('attended-draft-event');
+        $response->assertDontSee('attended-deleted-event');
+        $response->assertDontSee('others-attended-event');
+    }
 }

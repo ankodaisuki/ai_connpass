@@ -39,4 +39,14 @@ class EventAttendanceFactory extends Factory
             'cancelled_at' => now(),
         ]);
     }
+
+    /**
+     * 出席記録済み状態の申し込みを生成
+     */
+    public function attended(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'attended_at' => now(),
+        ]);
+    }
 }
