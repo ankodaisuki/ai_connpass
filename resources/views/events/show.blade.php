@@ -242,4 +242,65 @@
             </div>
         </aside>
     </div>
+
+    {{-- 出欠管理（主催者のみ） --}}
+    @can('updateAttendance', $event)
+        <div class="mt-12 border-t pt-8">
+            <h2 class="text-2xl font-bold mb-6">出欠管理</h2>
+
+            {{-- 参加者セクション --}}
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold mb-4">参加者</h3>
+                <div class="space-y-3">
+                    @forelse($event->attendances()->whereNull('deleted_at')->get() as $attendance)
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                            <span class="font-medium">{{ $attendance->user->name }}</span>
+                            <div class="flex gap-2">
+                                <form method="POST" action="{{ route('events.attendances.update', [$event, $attendance]) }}" class="inline">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="attended_at" value="{{ now()->format('Y-m-d H:i:s') }}">
+                                    <button
+                                        type="submit"
+                                        class="px-3 py-1 rounded text-sm font-medium transition-colors {{ $attendance->attended_at ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}"
+                                    >
+                                        {{ $attendance->attended_at ? '✓ 参加' : '参加' }}
+                                    </button>
+                                </form>
+
+                                <form method="POST" action="{{ route('events.attendances.update', [$event, $attendance]) }}" class="inline">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="attended_at" value="null">
+                                    <button
+                                        type="submit"
+                                        class="px-3 py-1 rounded text-sm font-medium transition-colors {{ ! $attendance->attended_at ? 'bg-gray-400 text-white hover:bg-gray-500' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}"
+                                    >
+                                        {{ ! $attendance->attended_at ? '✓ 未参加' : '未参加' }}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    @empty
+                        <p class="text-gray-500">参加者がいません</p>
+                    @endforelse
+                </div>
+            </div>
+
+            {{-- キャンセル一覧セクション --}}
+            <div>
+                <h3 class="text-lg font-semibold mb-4">キャンセル一覧</h3>
+                <div class="space-y-3">
+                    @forelse($event->attendances()->onlyTrashed()->get() as $attendance)
+                        <div class="flex justify-between items-center p-3 bg-gray-100 rounded opacity-75">
+                            <span class="text-gray-700">{{ $attendance->user->name }}</span>
+                            <span class="text-sm text-gray-600">キャンセル済み</span>
+                        </div>
+                    @empty
+                        <p class="text-gray-500">キャンセル者はいません</p>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+    @endcan
 </x-app-layout>
