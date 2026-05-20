@@ -20,7 +20,8 @@ class EventService
         $query = Event::query()
             ->with('user')
             ->withCount('appliedAttendances as attendances_count')
-            ->where('status', EventStatus::Published);
+            ->where('status', EventStatus::Published)
+            ->where('event_date', '>=', now());
 
         if ($q = ($filters['q'] ?? null)) {
             $query->where(function (Builder $qb) use ($q) {

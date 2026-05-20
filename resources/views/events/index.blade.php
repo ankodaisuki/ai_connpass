@@ -190,7 +190,6 @@
                 @foreach ($events as $event)
                     @php
                         $style = $categoryStyles[$event->category->value] ?? $categoryStyles[EventCategory::Other->value];
-                        $isPast = $event->event_date->isPast();
                         $attendeeCount = $event->attendances_count ?? 0;
                         $isFull = $attendeeCount >= $event->capacity;
                     @endphp
@@ -205,11 +204,7 @@
                                 <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $style['class'] }}">
                                     {{ $style['label'] }}
                                 </span>
-                                @if ($isPast)
-                                    <span class="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:text-slate-400">
-                                        終了
-                                    </span>
-                                @elseif ($isFull)
+                                @if ($isFull)
                                     <span class="inline-flex items-center rounded-full bg-red-100 dark:bg-red-900/40 px-2.5 py-0.5 text-xs font-medium text-red-700 dark:text-red-300">
                                         満員
                                     </span>

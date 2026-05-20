@@ -52,6 +52,19 @@ class EventTest extends TestCase
         $response->assertDontSee('deleted-event');
     }
 
+    /** 開催済み（終了）のイベントは一覧に表示されない */
+    public function test_index_excludes_past_events(): void
+    {
+        $user = User::factory()->create();
+        Event::factory()->for($user)->create(['status' => EventStatus::Published, 'title' => 'upcoming-event', 'event_date' => now()->addDays(1)]);
+        Event::factory()->for($user)->create(['status' => EventStatus::Published, 'title' => 'past-event', 'event_date' => now()->subDays(1)]);
+
+        $response = $this->get(route('events.index'));
+
+        $response->assertSee('upcoming-event');
+        $response->assertDontSee('past-event');
+    }
+
     /** event_date 昇順で表示（近い順） */
     public function test_index_sorts_by_event_date_ascending(): void
     {
