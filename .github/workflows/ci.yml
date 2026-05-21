@@ -27,7 +27,7 @@ jobs:
           key: composer-${{ hashFiles('composer.lock') }}
 
       - name: Composer インストール
-        run: composer install --no-dev --optimize-autoloader --no-interaction
+        run: composer install --prefer-dist --no-interaction
 
       - name: .env を準備
         run: |
