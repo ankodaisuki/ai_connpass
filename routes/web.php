@@ -13,11 +13,13 @@ Route::get('/', [EventController::class, 'index'])->name('events.index');
 
 // 一時デバッグ用（確認後削除）
 Route::get('debug/google-config', function () {
+    $allEnv = array_keys($_ENV + $_SERVER);
+    $googleKeys = array_values(array_filter($allEnv, fn ($k) => str_contains($k, 'GOOGLE')));
+
     return response()->json([
-        'config_client_id' => config('services.google.client_id') ? 'SET' : 'EMPTY',
         'env_client_id' => getenv('GOOGLE_CLIENT_ID') ? 'SET' : 'EMPTY',
-        'app_env' => getenv('APP_ENV'),
-        'app_url' => getenv('APP_URL'),
+        'app_url_source' => getenv('APP_URL'),
+        'google_keys_found' => $googleKeys,
     ]);
 });
 
