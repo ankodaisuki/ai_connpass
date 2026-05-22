@@ -15,10 +15,9 @@ Route::get('/', [EventController::class, 'index'])->name('events.index');
 Route::get('debug/google-config', function () {
     return response()->json([
         'GOOGLE_CLIENT_ID' => getenv('GOOGLE_CLIENT_ID') ? 'SET' : 'EMPTY',
+        'GOOGLE_TEST' => getenv('GOOGLE_TEST') ?: 'EMPTY',
         'APP_KEY' => getenv('APP_KEY') ? 'SET' : 'EMPTY',
         'DB_HOST' => getenv('DB_HOST') ? 'SET' : 'EMPTY',
-        'APP_ENV' => getenv('APP_ENV'),
-        'RAILWAY_PUBLIC_DOMAIN' => getenv('RAILWAY_PUBLIC_DOMAIN') ? 'SET' : 'EMPTY',
     ]);
 });
 
