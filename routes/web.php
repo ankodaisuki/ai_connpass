@@ -11,6 +11,15 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [EventController::class, 'index'])->name('events.index');
 
+// 一時デバッグ用（確認後削除）
+Route::get('debug/google-config', function () {
+    return response()->json([
+        'client_id' => config('services.google.client_id') ? 'SET' : 'EMPTY',
+        'client_secret' => config('services.google.client_secret') ? 'SET' : 'EMPTY',
+        'redirect' => config('services.google.redirect'),
+    ]);
+});
+
 Route::middleware('auth')->group(function () {
     Route::get('profile', [ProfileController::class, 'show'])->name('profile');
     Route::delete('profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
