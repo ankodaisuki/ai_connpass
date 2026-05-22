@@ -12,9 +12,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // まず NULL 許可で追加
+        // まず NULL 許可で追加（event_date と同じ datetime 型でタイムゾーン変換を避ける）
         Schema::table('events', function (Blueprint $table) {
-            $table->timestamp('end_date')->nullable()->after('event_date');
+            $table->dateTime('end_date')->nullable()->after('event_date');
         });
 
         // 既存データを「開始 + 2時間」でバックフィル
@@ -27,7 +27,7 @@ return new class extends Migration
 
         // NOT NULL 制約を付与
         Schema::table('events', function (Blueprint $table) {
-            $table->timestamp('end_date')->nullable(false)->change();
+            $table->dateTime('end_date')->nullable(false)->change();
         });
     }
 
