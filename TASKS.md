@@ -284,34 +284,99 @@ GitHub リポジトリの **Actions タブ**で結果を確認。
 
 ---
 
-## 📆 UC3: Google カレンダー連携（v2）
+## 📆 UC3: Google カレンダー連携（v2）✅
 
 connpass のように、ユーザーが自分の Google カレンダーへイベント予定を登録できるようにする。
 申込時に自動登録するフルAPI連携（OAuth）を目標とするが、前提となる「終了日時」を先に追加する。
 
-### 1. イベント終了日時の追加（前提機能）【対応中】
+### 1. イベント終了日時の追加（前提機能）【完了】
 
-- [ ] マイグレーション：`events.end_date`（NOT NULL）を追加し既存データを `event_date + 2時間` でバックフィル
-- [ ] `Event` モデル：`end_date` を Fillable + datetime キャスト
-- [ ] `EventFactory`：`end_date`（event_date + 2時間）を生成
-- [ ] バリデーション（Store/Update）：`end_date` 必須・`after:event_date`、項目名を日本語化
-- [ ] 作成・編集フォーム：終了日時入力を追加
-- [ ] 「終了」判定を終了時刻基準に変更
-  - [ ] 一覧：`end_date >= now`（開催中も表示、終了後に消える）
-  - [ ] 過去に参加した：`end_date < now`
-  - [ ] 申込締切：`end_date` まで（途中参加を許容）
-  - [ ] 出欠記録・キャンセル可否は従来どおり開始時刻（`event_date`）基準を維持
-- [ ] 表示を「開始 〜 終了」レンジに更新（一覧 / 詳細 / プロフィール作成イベント / 申込一覧 / 過去に参加した）
-- [ ] テスト追加・更新（バリデーション、開催中表示・途中参加、終了判定）
+- [x] マイグレーション：`events.end_date`（NOT NULL）を追加し既存データを `event_date + 2時間` でバックフィル
+- [x] `Event` モデル：`end_date` を Fillable + datetime キャスト
+- [x] `EventFactory`：`end_date`（event_date + 2時間）を生成
+- [x] バリデーション（Store/Update）：`end_date` 必須・`after:event_date`、項目名を日本語化
+- [x] 作成・編集フォーム：終了日時入力を追加
+- [x] 「終了」判定を終了時刻基準に変更
+  - [x] 一覧：`end_date >= now`（開催中も表示、終了後に消える）
+  - [x] 過去に参加した：`end_date < now`
+  - [x] 申込締切：`end_date` まで（途中参加を許容）
+  - [x] 出欠記録・キャンセル可否は従来どおり開始時刻（`event_date`）基準を維持
+- [x] 表示を「開始 〜 終了」レンジに更新（一覧 / 詳細 / プロフィール作成イベント / 申込一覧 / 過去に参加した）
+- [x] テスト追加・更新（バリデーション、開催中表示・途中参加、終了判定）
 
-### 2. Google カレンダー連携本体（フルAPI・OAuth）【後続】
+### 2. Google カレンダー連携本体（フルAPI・OAuth）【完了】
 
-- [ ] Google Cloud プロジェクト作成・Calendar API 有効化・OAuth クライアント発行
-- [ ] OAuth 同意フロー（連携する／解除する）— laravel/socialite
-- [ ] アクセストークン・リフレッシュトークンの暗号化保存・更新
-- [ ] 申込時に Google カレンダーへ予定を作成（非同期ジョブ、失敗しても申込は成功させる）
-- [ ] キャンセル時に予定を削除
-- [ ] 開催前の自動リマインド通知（スケジューラ + Notification）
+- [x] Google Cloud プロジェクト作成・Calendar API 有効化・OAuth クライアント発行
+- [x] OAuth 同意フロー（連携する／解除する）— laravel/socialite
+- [x] アクセストークン・リフレッシュトークンの暗号化保存・更新
+- [x] 申込時に Google カレンダーへ予定を作成（同期、ベストエフォート：失敗しても申込は成功）
+- [x] キャンセル時に予定を削除
+- [ ] 開催前の自動リマインド通知（スケジューラ + Notification）— 未対応（スコープ外）
+
+### 発生した問題と対応
+
+#### 1. Railway Runtime V2 の環境変数インジェクション不具合
+
+- **現象**: Railway の Variables に `GCAL_CLIENT_ID` 等を設定してもコンテナ内に注入されず、PHP から `getenv()` / `$_ENV` / `$_SERVER` で取得できない
+- **原因**: `RAILWAY_BETA_ENABLE_RUNTIME_V2` が有効な環境では、新規追加した変数がコンテナに注入されないバグ（Railway 既知の beta 不具合）
+- **対応**: Railway CLI で `railway variables set GCAL_CLIENT_ID=...` を実行。さらに Dockerfile に `ARG`/`ENV` を追加し、ビルド時に変数を焼き込む回避策を実施
+- **変数名変更**: `GOOGLE_*` → `GCAL_*` へ変更（Railway が `GOOGLE_` プレフィックスをフィルタリングする可能性を排除するため）
+
+#### 2. `config:cache` の削除（start.sh）
+
+- **現象**: `config:cache` を実行すると、Railway がランタイムで変数を注入する前のキャッシュ（空値）が固定されてしまう
+- **対応**: `start.sh` から `php artisan config:cache`・`route:cache`・`view:cache` を削除し、`optimize:clear` のみ実行するように変更
+- **影響**: キャッシュなしのため、本番パフォーマンスがやや低下する可能性がある
+
+#### 3. `GCAL_CLIENT_SECRET` の Docker イメージ焼き込み（セキュリティ懸念）
+
+- **現象**: Dockerfile の `ARG`/`ENV` で `GCAL_CLIENT_SECRET` をビルド時に注入するため、イメージレイヤーに平文で残る
+- **リスク**: イメージを誰かが取得した場合にシークレットが漏洩する可能性
+- **現状**: Railway の private registry を使用しているため直ちに問題にはならないが、将来的に対応が必要
+
+#### 4. Google OAuth テストモードの制限
+
+- **現象**: OAuth 同意画面が「テストモード」のため、Google Cloud Console のテストユーザーに登録されていないアカウントでは認証がブロックされる
+- **対応**: Google Cloud Console の「OAuth 同意画面 → テストユーザー」に使用するアカウントを手動追加
+
+### 今後の注意点
+
+1. **Railway Runtime V2 修正後の対応**: Railway が Runtime V2 のインジェクション不具合を修正した際は、Dockerfile の `ARG`/`ENV` を削除し、`start.sh` に `config:cache` を戻してパフォーマンスを回復すること
+2. **シークレットの安全な管理**: Railway の不具合が解消されたら、`GCAL_CLIENT_SECRET` を Dockerfile に焼き込む方式をやめ、ランタイム変数注入に戻すこと
+3. **Google OAuth 公開申請**: 本番リリース時はアプリを「テストモード」から「本番モード」へ昇格させ、Google の審査を受けること（`calendar.events` スコープは要審査）
+4. **リマインド通知**: 「開催前の自動リマインド通知」は今回のスコープ外として未実装。今後の UC として対応を検討すること
+
+### カレンダー連携の既知の課題（今後の対応候補）
+
+#### A. イベント変更時に参加者のカレンダーが更新されない
+
+- **内容**: 主催者がイベントのタイトル・日時・場所を変更しても、参加者の Google カレンダー予定は変更前のまま残る
+- **対応案**: `GoogleCalendarService::updateEvent()` を追加し、`EventController::update()` で全 Applied 参加者のカレンダーを一括更新する
+
+#### B. イベント削除・非公開・下書き変更時に参加者のカレンダーに残る
+
+- **内容**: 主催者がイベントを削除、または Public → Private/Draft に変更しても、参加者の Google カレンダー予定は残り続ける
+- **対応案**: `EventController::destroy()` および `update()` でステータスが非公開になる際に、全 Applied 参加者のカレンダー予定を削除する
+
+#### C. 連携解除時に既存のカレンダー予定が残る
+
+- **内容**: ユーザーが「連携を解除する」を実行すると、アクセストークンは失効するが、それ以前に作成済みの Google カレンダー予定は削除されない
+- **対応案**: `disconnect()` 処理でトークンを失効させる前に、`event_attendances.google_calendar_event_id` を持つ全予定を Google Calendar から削除する
+
+#### D. 再申込時に古いカレンダー予定が孤立する
+
+- **内容**: キャンセル時のカレンダー削除が失敗（ネットワークエラー等）した状態で再申込すると、新しいカレンダー予定が作られ DB の `google_calendar_event_id` が上書きされる。古い予定の ID は失われ、Google カレンダー側に孤立した予定が残る
+- **対応案**: 再申込の `syncCalendarOnApply()` で既存の `google_calendar_event_id` があれば先に削除してから新規作成する
+
+#### E. トークン期限切れ（リフレッシュトークンなし）のサイレント失敗
+
+- **内容**: Google がリフレッシュトークンを返さなかった場合（`refresh_token = null`）、アクセストークンの有効期限切れ後は `authorizedClient()` が `null` を返しカレンダー同期が無音で失敗する。ユーザーへの通知は一切ない
+- **対応案**: 同期失敗時にプロフィール画面で警告を表示、または再連携を促す通知を実装する
+
+#### F. 参加者多数イベントでの同期パフォーマンス（課題 A/B 対応時）
+
+- **内容**: 課題 A・B を実装した場合、参加者数 × Google API 呼び出しが同期で発生し、主催者の更新・削除操作がタイムアウトするリスクがある。Google API のレート制限（1 ユーザーあたり 10 req/sec）に当たる可能性もある
+- **対応案**: カレンダー同期処理をキュー（`Queue::push` / Laravel Job）で非同期化する
 
 ---
 
