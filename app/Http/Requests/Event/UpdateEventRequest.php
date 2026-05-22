@@ -26,6 +26,7 @@ class UpdateEventRequest extends FormRequest
             'prefecture' => ['required', 'string', 'max:10'],
             'location' => ['required', 'string', 'max:255'],
             'event_date' => ['required', 'date', 'after:now'],
+            'end_date' => ['required', 'date', 'after:event_date'],
             'capacity' => ['required', 'integer', 'min:1'],
             'status' => ['required', 'integer', Rule::enum(EventStatus::class)],
         ];

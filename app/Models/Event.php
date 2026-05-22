@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'prefecture',
     'location',
     'event_date',
+    'end_date',
     'capacity',
     'status',
 ])]
@@ -38,6 +39,7 @@ class Event extends Model
     {
         return [
             'event_date' => 'datetime',
+            'end_date' => 'datetime',
             'category' => EventCategory::class,
             'status' => EventStatus::class,
         ];

@@ -189,6 +189,7 @@ return [
         'prefecture' => '都道府県',
         'location' => '会場',
         'event_date' => '開催日時',
+        'end_date' => '終了日時',
         'capacity' => '定員',
         'status' => '公開設定',
         'keyword' => 'キーワード',

@@ -130,6 +130,26 @@
                     @enderror
                 </div>
 
+                <!-- 終了日時 -->
+                <div class="min-w-0">
+                    <label for="end_date" class="block text-sm font-medium mb-1.5 text-slate-700 dark:text-slate-300">
+                        終了日時 <span class="text-red-500">*</span>
+                    </label>
+                    <div class="flex">
+                        <input
+                            type="datetime-local"
+                            id="end_date"
+                            name="end_date"
+                            value="{{ old('end_date', $event->end_date->format('Y-m-d\TH:i')) }}"
+                            class="flex-1 min-w-0 px-4 py-2.5 rounded-lg border border-slate-300 dark:border-[#3E3E3A] bg-white dark:bg-[#0a0a0a] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition [color-scheme:light_dark] @error('end_date') border-red-500 focus:ring-red-500 @enderror"
+                            required
+                        />
+                    </div>
+                    @error('end_date')
+                        <p class="text-red-500 text-sm mt-1.5">{{ $message }}</p>
+                    @enderror
+                </div>
+
                 <!-- 定員 -->
                 <div>
                     <label for="capacity" class="block text-sm font-medium mb-1.5 text-slate-700 dark:text-slate-300">

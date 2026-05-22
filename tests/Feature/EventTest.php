@@ -65,6 +65,20 @@ class EventTest extends TestCase
         $response->assertDontSee('past-event');
     }
 
+    /** 開催中（開始済み・終了前）のイベントは一覧に表示される */
+    public function test_index_shows_ongoing_events(): void
+    {
+        $user = User::factory()->create();
+        Event::factory()->for($user)->create([
+            'status' => EventStatus::Published,
+            'title' => 'ongoing-event',
+            'event_date' => now()->subHour(),
+            'end_date' => now()->addHour(),
+        ]);
+
+        $this->get(route('events.index'))->assertSee('ongoing-event');
+    }
+
     /** event_date 昇順で表示（近い順） */
     public function test_index_sorts_by_event_date_ascending(): void
     {
@@ -353,6 +367,7 @@ class EventTest extends TestCase
             'prefecture' => '東京都',
             'location' => '渋谷区テスト1-1-1',
             'event_date' => now()->addDays(5)->toDateTimeString(),
+            'end_date' => now()->addDays(5)->addHours(2)->toDateTimeString(),
             'capacity' => 30,
             'status' => EventStatus::Published->value,
         ];
@@ -375,6 +390,7 @@ class EventTest extends TestCase
             'prefecture' => '東京都',
             'location' => '渋谷区',
             'event_date' => now()->addDays(5)->toDateTimeString(),
+            'end_date' => now()->addDays(5)->addHours(2)->toDateTimeString(),
             'capacity' => 10,
         ]);
 
@@ -417,6 +433,37 @@ class EventTest extends TestCase
             'event_date' => now()->subDays(1)->toDateTimeString(),
             'capacity' => 10,
         ])->assertSessionHasErrors(['event_date']);
+    }
+
+    /** end_date 未入力 → end_date バリデーションエラー */
+    public function test_store_fails_when_end_date_is_missing(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('events.store'), [
+            'title' => 'タイトル',
+            'category' => EventCategory::Frontend->value,
+            'prefecture' => '東京都',
+            'location' => '渋谷区',
+            'event_date' => now()->addDays(5)->toDateTimeString(),
+            'capacity' => 10,
+        ])->assertSessionHasErrors(['end_date']);
+    }
+
+    /** end_date が event_date より前 → end_date バリデーションエラー */
+    public function test_store_fails_when_end_date_is_before_event_date(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('events.store'), [
+            'title' => 'タイトル',
+            'category' => EventCategory::Frontend->value,
+            'prefecture' => '東京都',
+            'location' => '渋谷区',
+            'event_date' => now()->addDays(5)->toDateTimeString(),
+            'end_date' => now()->addDays(4)->toDateTimeString(),
+            'capacity' => 10,
+        ])->assertSessionHasErrors(['end_date']);
     }
 
     /** capacity が 0 以下 → capacity バリデーションエラー */
@@ -493,6 +540,7 @@ class EventTest extends TestCase
             'prefecture' => '大阪府',
             'location' => '大阪市テスト1-1-1',
             'event_date' => now()->addDays(7)->toDateTimeString(),
+            'end_date' => now()->addDays(7)->addHours(2)->toDateTimeString(),
             'capacity' => 50,
             'status' => EventStatus::Published->value,
         ]);
@@ -514,6 +562,7 @@ class EventTest extends TestCase
             'prefecture' => '東京都',
             'location' => '渋谷区',
             'event_date' => now()->addDays(5)->toDateTimeString(),
+            'end_date' => now()->addDays(5)->addHours(2)->toDateTimeString(),
             'capacity' => 10,
             'status' => EventStatus::Published->value,
         ])->assertForbidden();

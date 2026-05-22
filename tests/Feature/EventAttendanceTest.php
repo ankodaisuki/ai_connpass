@@ -105,6 +105,30 @@ class EventAttendanceTest extends TestCase
             ->assertSessionHasErrors(['attendance']);
     }
 
+    /** 開催中（開始済み・終了前）のイベントには途中参加できる */
+    public function test_store_allows_application_during_ongoing_event(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->subHour(),
+            'end_date' => now()->addHour(),
+        ]);
+        $applicant = User::factory()->create();
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->post(route('events.attendances.store', $event))
+            ->assertRedirect(route('events.show', $event))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('event_attendances', [
+            'event_id' => $event->id,
+            'user_id' => $applicant->id,
+            'status' => AttendanceStatus::Applied->value,
+        ]);
+    }
+
     /** イベント作成者本人は申し込みできない */
     public function test_store_fails_for_event_owner(): void
     {

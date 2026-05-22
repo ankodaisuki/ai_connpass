@@ -17,8 +17,8 @@ class EventAttendanceService
      */
     public function apply(Event $event, User $user): void
     {
-        if ($event->event_date->isPast()) {
-            throw new AttendanceException('このイベントはすでに開始しています。');
+        if ($event->end_date->isPast()) {
+            throw new AttendanceException('このイベントはすでに終了しています。');
         }
 
         if ($event->user_id === $user->id) {

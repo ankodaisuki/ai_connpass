@@ -41,7 +41,7 @@
                         $event = $attendance->event;
                         if ($event === null) { continue; }
                         $cat = $categoryStyles[$event->category->value] ?? ['label' => $event->category->name, 'class' => 'bg-slate-100 text-slate-600', 'gradient' => 'from-slate-500 to-slate-600'];
-                        $isPast = $event->event_date->isPast();
+                        $isPast = $event->end_date->isPast();
                     @endphp
                     <a href="{{ route('events.show', $event) }}"
                         class="flex items-start gap-4 rounded-xl bg-white dark:bg-[#161615] border {{ $isPast ? 'border-slate-200 dark:border-[#3E3E3A] opacity-60' : 'border-slate-200 dark:border-[#3E3E3A] hover:border-indigo-300 dark:hover:border-indigo-700' }} p-4 transition-colors group">
@@ -68,7 +68,7 @@
                                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
                                     </svg>
-                                    {{ $event->event_date->format('Y/m/d H:i') }}
+                                    {{ $event->event_date->format('Y/m/d H:i') }}〜{{ $event->end_date->isSameDay($event->event_date) ? $event->end_date->format('H:i') : $event->end_date->format('m/d H:i') }}
                                 </span>
                                 <span class="inline-flex items-center gap-1">
                                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">

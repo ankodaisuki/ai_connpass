@@ -7,6 +7,7 @@ use App\Enums\EventStatus;
 use App\Models\Event;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Carbon;
 
 /**
  * @extends Factory<Event>
@@ -61,6 +62,7 @@ class EventFactory extends Factory
             'prefecture' => fake()->randomElement(['東京都', '大阪府', '京都府', '福岡県', '神奈川県', '埼玉県']),
             'location' => fake()->randomElement($venues),
             'event_date' => fake()->dateTimeBetween('+1 day', '+6 months'),
+            'end_date' => fn (array $attributes) => Carbon::parse($attributes['event_date'])->addHours(2),
             'capacity' => fake()->randomElement([20, 30, 50, 80, 100]),
             'status' => EventStatus::Published,
         ];

@@ -64,7 +64,7 @@ class EventAttendance extends Model
         $query->whereNotNull('attended_at')
             ->whereHas('event', function (Builder $query): void {
                 $query->where('status', EventStatus::Published)
-                    ->where('event_date', '<', now());
+                    ->where('end_date', '<', now());
             });
     }
 
