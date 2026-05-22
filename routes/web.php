@@ -13,9 +13,11 @@ Route::get('/', [EventController::class, 'index'])->name('events.index');
 
 // 一時デバッグ用（確認後削除）
 Route::get('debug/google-config', function () {
+    $keys = array_keys(array_merge($_ENV, $_SERVER, getenv() ?: []));
+    sort($keys);
     return response()->json([
         'GCAL_CLIENT_ID' => getenv('GCAL_CLIENT_ID') ? 'SET' : 'EMPTY',
-        'config_client_id' => config('services.google.client_id') ? 'SET' : 'EMPTY',
+        'all_keys' => array_values(array_unique($keys)),
     ]);
 });
 
