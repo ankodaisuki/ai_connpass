@@ -14,9 +14,10 @@ Route::get('/', [EventController::class, 'index'])->name('events.index');
 // 一時デバッグ用（確認後削除）
 Route::get('debug/google-config', function () {
     return response()->json([
-        'client_id' => config('services.google.client_id') ? 'SET' : 'EMPTY',
-        'client_secret' => config('services.google.client_secret') ? 'SET' : 'EMPTY',
-        'redirect' => config('services.google.redirect'),
+        'config_client_id' => config('services.google.client_id') ? 'SET' : 'EMPTY',
+        'env_client_id' => getenv('GOOGLE_CLIENT_ID') ? 'SET' : 'EMPTY',
+        'app_env' => getenv('APP_ENV'),
+        'app_url' => getenv('APP_URL'),
     ]);
 });
 
