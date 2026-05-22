@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\EventAttendanceController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\GoogleCalendarConnectionController;
 use App\Http\Controllers\MyAttendanceController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -24,6 +25,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('events/{event}/attendances', [EventAttendanceController::class, 'destroy'])->name('events.attendances.destroy');
     Route::patch('events/{event}/attendances/{attendance}', [EventAttendanceController::class, 'update'])->name('events.attendances.update');
     Route::get('events/{event}/attendances', fn ($event) => redirect()->route('events.show', $event));
+    Route::get('google/connect', [GoogleCalendarConnectionController::class, 'connect'])->name('google.connect');
+    Route::get('google/callback', [GoogleCalendarConnectionController::class, 'callback'])->name('google.callback');
+    Route::delete('google/disconnect', [GoogleCalendarConnectionController::class, 'disconnect'])->name('google.disconnect');
 });
 
 Route::get('events/{event}', [EventController::class, 'show'])->name('events.show');
