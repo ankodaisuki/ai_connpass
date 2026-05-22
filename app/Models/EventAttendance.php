@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'applied_at',
     'cancelled_at',
     'attended_at',
+    'google_calendar_event_id',
 ])]
 class EventAttendance extends Model
 {
