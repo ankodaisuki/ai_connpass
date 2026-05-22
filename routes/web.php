@@ -11,16 +11,6 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [EventController::class, 'index'])->name('events.index');
 
-// 一時デバッグ用（確認後削除）
-Route::get('debug/google-config', function () {
-    $keys = array_keys(array_merge($_ENV, $_SERVER, getenv() ?: []));
-    sort($keys);
-    return response()->json([
-        'GCAL_CLIENT_ID' => getenv('GCAL_CLIENT_ID') ? 'SET' : 'EMPTY',
-        'all_keys' => array_values(array_unique($keys)),
-    ]);
-});
-
 Route::middleware('auth')->group(function () {
     Route::get('profile', [ProfileController::class, 'show'])->name('profile');
     Route::delete('profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
