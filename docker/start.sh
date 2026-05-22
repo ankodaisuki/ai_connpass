@@ -19,6 +19,10 @@ fi
 chown www-data:www-data database/database.sqlite
 chmod 664 database/database.sqlite
 
+# 診断ログ（確認後削除）
+echo "DEBUG GCAL_CLIENT_ID=${GCAL_CLIENT_ID:+SET}"
+echo "DEBUG APP_KEY=${APP_KEY:+SET}"
+
 # 既存キャッシュをクリアしてから再生成
 php artisan optimize:clear
 php artisan config:cache
