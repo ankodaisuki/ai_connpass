@@ -21,7 +21,9 @@ class ProfileController extends Controller
 
         $attendanceCount = $user->eventAttendances()->appliedToPublishedEvent()->count();
 
-        return view('profile.show', compact('user', 'events', 'attendanceCount'));
+        $googleCalendarToken = $user->googleCalendarToken;
+
+        return view('profile.show', compact('user', 'events', 'attendanceCount', 'googleCalendarToken'));
     }
 
     public function destroy(): RedirectResponse

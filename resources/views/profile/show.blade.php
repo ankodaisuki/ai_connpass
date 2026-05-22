@@ -56,6 +56,33 @@
             </div>
         </div>
 
+        <!-- Googleカレンダー連携 -->
+        <div class="rounded-2xl bg-white dark:bg-[#161615] border border-slate-200 dark:border-[#3E3E3A] p-6 shadow-sm">
+            <h2 class="text-lg font-bold tracking-tight mb-2">Googleカレンダー連携</h2>
+            @if ($googleCalendarToken)
+                <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                    連携中：{{ $googleCalendarToken->google_email ?? 'Googleアカウント' }}（イベント申込時に自動で予定が登録されます）
+                </p>
+                <form method="POST" action="{{ route('google.disconnect') }}"
+                    onsubmit="return confirm('Googleカレンダー連携を解除しますか？')">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit"
+                        class="inline-flex items-center px-4 py-2 rounded-lg border border-slate-300 dark:border-[#3E3E3A] text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800 text-sm transition">
+                        連携を解除する
+                    </button>
+                </form>
+            @else
+                <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                    連携すると、イベント申込時に自動で Google カレンダーへ予定が登録されます。
+                </p>
+                <a href="{{ route('google.connect') }}"
+                    class="inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium shadow-sm transition-colors">
+                    連携する
+                </a>
+            @endif
+        </div>
+
         <!-- 作成したイベント -->
         <div>
             <div class="flex items-center justify-between mb-4">
