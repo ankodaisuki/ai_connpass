@@ -68,6 +68,14 @@ COPY docker/supervisord.conf /etc/supervisord.conf
 COPY docker/start.sh /start.sh
 RUN chmod +x /start.sh
 
+# Railway Variables をビルド時に注入（Runtime V2 の変数注入の問題を回避）
+ARG GCAL_CLIENT_ID
+ARG GCAL_CLIENT_SECRET
+ARG GCAL_REDIRECT_URI
+ENV GCAL_CLIENT_ID=${GCAL_CLIENT_ID}
+ENV GCAL_CLIENT_SECRET=${GCAL_CLIENT_SECRET}
+ENV GCAL_REDIRECT_URI=${GCAL_REDIRECT_URI}
+
 EXPOSE 80
 
 CMD ["/start.sh"]
