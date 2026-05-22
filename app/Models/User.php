@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -52,5 +53,18 @@ class User extends Authenticatable
     public function eventAttendances(): HasMany
     {
         return $this->hasMany(EventAttendance::class);
+    }
+
+    /**
+     * @return HasOne<GoogleCalendarToken, $this>
+     */
+    public function googleCalendarToken(): HasOne
+    {
+        return $this->hasOne(GoogleCalendarToken::class);
+    }
+
+    public function hasGoogleCalendarConnected(): bool
+    {
+        return $this->googleCalendarToken()->exists();
     }
 }
