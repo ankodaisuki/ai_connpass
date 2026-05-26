@@ -380,6 +380,42 @@ connpass のように、ユーザーが自分の Google カレンダーへイベ
 
 ---
 
+## 🔔 キャンセル待ち機能
+
+設計仕様: `docs/superpowers/specs/2026-05-26-waitlist-design.md`
+実装計画: `docs/superpowers/plans/2026-05-26-waitlist.md`
+
+### 実装内容
+
+- [ ] Task 1: マイグレーション・Enum・Model・Factory 更新
+  - [ ] `waitlisted_at` カラム追加マイグレーション
+  - [ ] `AttendanceStatus::Waitlisted = 2` 追加
+  - [ ] `EventAttendance` に `waitlisted_at` fillable/cast 追加
+  - [ ] `Event` に `waitlistAttendances()` リレーション追加
+  - [ ] `EventAttendanceFactory` に `waitlisted()` ステート追加
+
+- [ ] Task 2: サービス層 - キャンセル待ち登録
+  - [ ] `apply()` の戻り値を `AttendanceStatus` に変更
+  - [ ] `waitlistApply()` メソッド追加
+  - [ ] コントローラーの flash メッセージ分岐
+
+- [ ] Task 3: サービス層 - 自動昇格
+  - [ ] `cancel()` を Applied / Waitlisted 両対応に変更
+  - [ ] `promoteFromWaitlist()` メソッド追加
+
+- [ ] Task 4: メール送信
+  - [ ] `WaitlistConfirmationMail` クラス + ビュー
+  - [ ] `WaitlistPromotedMail` クラス + ビュー
+
+- [ ] Task 5: Google カレンダー連携（昇格時）テスト追加
+
+- [ ] Task 6: EventController + UI 更新
+  - [ ] `show()` に `$myWaitlist`・`$myWaitlistPosition`・`$isWaitlistFull` 追加
+  - [ ] `show.blade.php` にキャンセル待ちボタン・バッジ追加
+  - [ ] 主催者セクションにキャンセル待ちタブ追加
+
+---
+
 ## 📝 開発ワークフロー
 
 各タスク完了時：
