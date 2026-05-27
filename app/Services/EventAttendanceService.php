@@ -4,10 +4,12 @@ namespace App\Services;
 
 use App\Enums\AttendanceStatus;
 use App\Exceptions\AttendanceException;
+use App\Mail\WaitlistConfirmationMail;
 use App\Models\Event;
 use App\Models\EventAttendance;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class EventAttendanceService
 {
@@ -18,7 +20,7 @@ class EventAttendanceService
      *
      * @throws AttendanceException
      */
-    public function apply(Event $event, User $user): void
+    public function apply(Event $event, User $user): AttendanceStatus
     {
         if ($event->end_date->isPast()) {
             throw new AttendanceException('このイベントはすでに終了しています。');
@@ -37,13 +39,17 @@ class EventAttendanceService
             throw new AttendanceException('すでに申し込み済みです。');
         }
 
+        if ($existing !== null && $existing->status === AttendanceStatus::Waitlisted) {
+            throw new AttendanceException('すでにキャンセル待ちに登録されています。');
+        }
+
         $appliedCount = EventAttendance::query()
             ->where('event_id', $event->id)
             ->where('status', AttendanceStatus::Applied)
             ->count();
 
         if ($appliedCount >= $event->capacity) {
-            throw new AttendanceException('定員に達しています。');
+            return $this->waitlistApply($event, $user, $existing);
         }
 
         if ($existing !== null) {
@@ -51,6 +57,7 @@ class EventAttendanceService
                 'status' => AttendanceStatus::Applied,
                 'applied_at' => now(),
                 'cancelled_at' => null,
+                'waitlisted_at' => null,
             ]);
             $attendance = $existing;
         } else {
@@ -63,6 +70,52 @@ class EventAttendanceService
         }
 
         $this->syncCalendarOnApply($event, $user, $attendance);
+
+        return AttendanceStatus::Applied;
+    }
+
+    /**
+     * キャンセル待ちに登録する
+     *
+     * @throws AttendanceException
+     */
+    private function waitlistApply(Event $event, User $user, ?EventAttendance $existing): AttendanceStatus
+    {
+        $waitlistedCount = EventAttendance::query()
+            ->where('event_id', $event->id)
+            ->where('status', AttendanceStatus::Waitlisted)
+            ->count();
+
+        if ($waitlistedCount >= $event->capacity) {
+            throw new AttendanceException('キャンセル待ちも満員です。');
+        }
+
+        if ($existing !== null) {
+            $existing->update([
+                'status' => AttendanceStatus::Waitlisted,
+                'waitlisted_at' => now(),
+                'applied_at' => null,
+                'cancelled_at' => null,
+            ]);
+            $attendance = $existing;
+        } else {
+            $attendance = EventAttendance::create([
+                'event_id' => $event->id,
+                'user_id' => $user->id,
+                'status' => AttendanceStatus::Waitlisted,
+                'waitlisted_at' => now(),
+            ]);
+        }
+
+        $position = EventAttendance::query()
+            ->where('event_id', $event->id)
+            ->where('status', AttendanceStatus::Waitlisted)
+            ->where('waitlisted_at', '<=', $attendance->waitlisted_at)
+            ->count();
+
+        Mail::to($user)->send(new WaitlistConfirmationMail($event, $position));
+
+        return AttendanceStatus::Waitlisted;
     }
 
     /**

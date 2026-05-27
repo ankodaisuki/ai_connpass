@@ -145,8 +145,8 @@ class EventAttendanceTest extends TestCase
             ->assertSessionHasErrors(['attendance']);
     }
 
-    /** 定員オーバーは申し込みエラー */
-    public function test_store_fails_when_capacity_is_full(): void
+    /** 定員オーバー時はキャンセル待ちに登録される */
+    public function test_store_registers_waitlist_when_capacity_is_full(): void
     {
         $owner = User::factory()->create();
         $event = Event::factory()->for($owner)->create([
@@ -164,7 +164,13 @@ class EventAttendanceTest extends TestCase
             ->from(route('events.show', $event))
             ->post(route('events.attendances.store', $event))
             ->assertRedirect(route('events.show', $event))
-            ->assertSessionHasErrors(['attendance']);
+            ->assertSessionHas('success', 'キャンセル待ちに登録しました。');
+
+        $this->assertDatabaseHas('event_attendances', [
+            'event_id' => $event->id,
+            'user_id' => $applicant->id,
+            'status' => AttendanceStatus::Waitlisted->value,
+        ]);
     }
 
     /** 重複申し込みはエラー */
@@ -431,5 +437,104 @@ class EventAttendanceTest extends TestCase
             ->get(route('events.show', $event));
 
         $response->assertSee('キャンセル一覧');
+    }
+
+    // ==========================================
+    // waitlist - キャンセル待ち登録
+    // ==========================================
+
+    /** 満員時に申し込むとキャンセル待ちに登録され flash に success が入る */
+    public function test_store_registers_waitlist_when_event_is_full(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->addDays(5),
+            'end_date' => now()->addDays(5)->addHours(2),
+            'capacity' => 2,
+        ]);
+        EventAttendance::factory()->for($event)->count(2)->create(['status' => AttendanceStatus::Applied]);
+        $applicant = User::factory()->create();
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->post(route('events.attendances.store', $event))
+            ->assertRedirect(route('events.show', $event))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('event_attendances', [
+            'event_id' => $event->id,
+            'user_id' => $applicant->id,
+            'status' => AttendanceStatus::Waitlisted->value,
+        ]);
+    }
+
+    /** flash メッセージが Applied と Waitlisted で異なる */
+    public function test_store_flash_message_differs_between_applied_and_waitlisted(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->addDays(5),
+            'end_date' => now()->addDays(5)->addHours(2),
+            'capacity' => 1,
+        ]);
+        $firstUser = User::factory()->create();
+        $secondUser = User::factory()->create();
+
+        $this->actingAs($firstUser)
+            ->from(route('events.show', $event))
+            ->post(route('events.attendances.store', $event))
+            ->assertSessionHas('success', '参加申し込みが完了しました。');
+
+        $this->actingAs($secondUser)
+            ->from(route('events.show', $event))
+            ->post(route('events.attendances.store', $event))
+            ->assertSessionHas('success', 'キャンセル待ちに登録しました。');
+    }
+
+    /** キャンセル待ちも満員の場合は登録拒否（エラー表示） */
+    public function test_store_rejects_when_waitlist_is_also_full(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->addDays(5),
+            'end_date' => now()->addDays(5)->addHours(2),
+            'capacity' => 2,
+        ]);
+        EventAttendance::factory()->for($event)->count(2)->create(['status' => AttendanceStatus::Applied]);
+        EventAttendance::factory()->for($event)->count(2)->waitlisted()->create();
+        $applicant = User::factory()->create();
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->post(route('events.attendances.store', $event))
+            ->assertSessionHasErrors('attendance');
+
+        $this->assertDatabaseMissing('event_attendances', [
+            'event_id' => $event->id,
+            'user_id' => $applicant->id,
+        ]);
+    }
+
+    /** すでにキャンセル待ち登録済みの場合は重複登録拒否 */
+    public function test_store_rejects_duplicate_waitlist(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->addDays(5),
+            'end_date' => now()->addDays(5)->addHours(2),
+            'capacity' => 1,
+        ]);
+        EventAttendance::factory()->for($event)->create(['status' => AttendanceStatus::Applied]);
+        $applicant = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($applicant)->waitlisted()->create();
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->post(route('events.attendances.store', $event))
+            ->assertSessionHasErrors('attendance');
     }
 }

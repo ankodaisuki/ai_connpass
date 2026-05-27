@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AttendanceStatus;
 use App\Enums\EventStatus;
 use App\Exceptions\AttendanceException;
 use App\Models\Event;
@@ -30,12 +31,16 @@ class EventAttendanceController extends Controller
         $user = auth()->user();
 
         try {
-            $this->attendanceService->apply($event, $user);
+            $result = $this->attendanceService->apply($event, $user);
         } catch (AttendanceException $e) {
             return back()->withErrors(['attendance' => $e->getMessage()]);
         }
 
-        return back()->with('success', '参加申し込みが完了しました。');
+        $message = $result === AttendanceStatus::Waitlisted
+            ? 'キャンセル待ちに登録しました。'
+            : '参加申し込みが完了しました。';
+
+        return back()->with('success', $message);
     }
 
     /**
