@@ -75,4 +75,15 @@ class Event extends Model
         return $this->hasMany(EventAttendance::class)
             ->where('status', AttendanceStatus::Applied);
     }
+
+    /**
+     * キャンセル待ち（Waitlisted）の参加者一覧
+     *
+     * @return HasMany<EventAttendance, $this>
+     */
+    public function waitlistAttendances(): HasMany
+    {
+        return $this->hasMany(EventAttendance::class)
+            ->where('status', AttendanceStatus::Waitlisted);
+    }
 }
