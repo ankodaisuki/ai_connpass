@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\AttendanceStatus;
 use App\Exceptions\AttendanceException;
 use App\Mail\WaitlistConfirmationMail;
+use App\Mail\WaitlistPromotedMail;
 use App\Models\Event;
 use App\Models\EventAttendance;
 use App\Models\User;
@@ -119,7 +120,7 @@ class EventAttendanceService
     }
 
     /**
-     * イベント参加のキャンセル
+     * イベント参加のキャンセル（Applied / Waitlisted どちらも対応）
      *
      * @throws AttendanceException
      */
@@ -128,19 +129,23 @@ class EventAttendanceService
         $attendance = EventAttendance::query()
             ->where('event_id', $event->id)
             ->where('user_id', $user->id)
-            ->where('status', AttendanceStatus::Applied)
+            ->whereIn('status', [AttendanceStatus::Applied, AttendanceStatus::Waitlisted])
             ->first();
 
         if ($attendance === null) {
             throw new AttendanceException('申し込みが見つかりません。');
         }
 
-        if ($event->event_date->isPast() && $attendance->attended_at !== null) {
-            throw new AttendanceException('出席済みのためキャンセルできません。');
-        }
+        $wasApplied = $attendance->status === AttendanceStatus::Applied;
 
-        if ($event->event_date->isPast()) {
-            throw new AttendanceException('このイベントはすでに開始しています。');
+        if ($wasApplied) {
+            if ($event->event_date->isPast() && $attendance->attended_at !== null) {
+                throw new AttendanceException('出席済みのためキャンセルできません。');
+            }
+
+            if ($event->event_date->isPast()) {
+                throw new AttendanceException('このイベントはすでに開始しています。');
+            }
         }
 
         $attendance->update([
@@ -148,7 +153,36 @@ class EventAttendanceService
             'cancelled_at' => now(),
         ]);
 
-        $this->syncCalendarOnCancel($user, $attendance);
+        if ($wasApplied) {
+            $this->syncCalendarOnCancel($user, $attendance);
+            $this->promoteFromWaitlist($event);
+        }
+    }
+
+    /**
+     * キャンセル待ち最古のユーザーを Applied に昇格する
+     */
+    private function promoteFromWaitlist(Event $event): void
+    {
+        $waitlisted = EventAttendance::query()
+            ->with('user')
+            ->where('event_id', $event->id)
+            ->where('status', AttendanceStatus::Waitlisted)
+            ->orderBy('waitlisted_at', 'asc')
+            ->first();
+
+        if ($waitlisted === null) {
+            return;
+        }
+
+        $waitlisted->update([
+            'status' => AttendanceStatus::Applied,
+            'applied_at' => now(),
+            'waitlisted_at' => null,
+        ]);
+
+        Mail::to($waitlisted->user)->send(new WaitlistPromotedMail($event));
+        $this->syncCalendarOnApply($event, $waitlisted->user, $waitlisted);
     }
 
     private function syncCalendarOnApply(Event $event, User $user, EventAttendance $attendance): void

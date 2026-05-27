@@ -537,4 +537,102 @@ class EventAttendanceTest extends TestCase
             ->post(route('events.attendances.store', $event))
             ->assertSessionHasErrors('attendance');
     }
+
+    // ==========================================
+    // waitlist - 自動昇格
+    // ==========================================
+
+    /** Applied キャンセル時にキャンセル待ち最古のユーザーが Applied に昇格する */
+    public function test_cancel_promotes_oldest_waitlisted_user_when_applied_user_cancels(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->addDays(5),
+            'end_date' => now()->addDays(5)->addHours(2),
+            'capacity' => 1,
+        ]);
+        $applicant = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($applicant)->create(['status' => AttendanceStatus::Applied]);
+
+        $firstWaiter = User::factory()->create();
+        $secondWaiter = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($firstWaiter)->create([
+            'status' => AttendanceStatus::Waitlisted,
+            'waitlisted_at' => now()->subMinutes(10),
+        ]);
+        EventAttendance::factory()->for($event)->for($secondWaiter)->create([
+            'status' => AttendanceStatus::Waitlisted,
+            'waitlisted_at' => now()->subMinutes(5),
+        ]);
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->delete(route('events.attendances.destroy', $event));
+
+        $this->assertDatabaseHas('event_attendances', [
+            'event_id' => $event->id,
+            'user_id' => $firstWaiter->id,
+            'status' => AttendanceStatus::Applied->value,
+        ]);
+        $this->assertDatabaseHas('event_attendances', [
+            'event_id' => $event->id,
+            'user_id' => $secondWaiter->id,
+            'status' => AttendanceStatus::Waitlisted->value,
+        ]);
+    }
+
+    /** キャンセル待ちが存在しない場合は昇格処理が何も起こさない */
+    public function test_cancel_does_nothing_when_no_waitlist_exists(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->addDays(5),
+            'end_date' => now()->addDays(5)->addHours(2),
+            'capacity' => 2,
+        ]);
+        $applicant = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($applicant)->create(['status' => AttendanceStatus::Applied]);
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->delete(route('events.attendances.destroy', $event))
+            ->assertRedirect();
+
+        $this->assertDatabaseCount('event_attendances', 1);
+    }
+
+    /** Waitlisted キャンセル時は自動昇格が発生しない */
+    public function test_cancel_waitlist_does_not_trigger_promotion(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->addDays(5),
+            'end_date' => now()->addDays(5)->addHours(2),
+            'capacity' => 1,
+        ]);
+        EventAttendance::factory()->for($event)->create(['status' => AttendanceStatus::Applied]);
+        $waiter1 = User::factory()->create();
+        $waiter2 = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($waiter1)->create([
+            'status' => AttendanceStatus::Waitlisted,
+            'waitlisted_at' => now()->subMinutes(10),
+        ]);
+        EventAttendance::factory()->for($event)->for($waiter2)->create([
+            'status' => AttendanceStatus::Waitlisted,
+            'waitlisted_at' => now()->subMinutes(5),
+        ]);
+
+        $this->actingAs($waiter1)
+            ->from(route('events.show', $event))
+            ->delete(route('events.attendances.destroy', $event));
+
+        $this->assertDatabaseHas('event_attendances', [
+            'event_id' => $event->id,
+            'user_id' => $waiter2->id,
+            'status' => AttendanceStatus::Waitlisted->value,
+        ]);
+    }
 }
