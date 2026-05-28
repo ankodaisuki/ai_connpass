@@ -4,10 +4,13 @@ namespace Tests\Feature;
 
 use App\Enums\AttendanceStatus;
 use App\Enums\EventStatus;
+use App\Mail\WaitlistConfirmationMail;
+use App\Mail\WaitlistPromotedMail;
 use App\Models\Event;
 use App\Models\EventAttendance;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class EventAttendanceTest extends TestCase
@@ -634,5 +637,84 @@ class EventAttendanceTest extends TestCase
             'user_id' => $waiter2->id,
             'status' => AttendanceStatus::Waitlisted->value,
         ]);
+    }
+
+    // ==========================================
+    // waitlist - メール通知
+    // ==========================================
+
+    /** キャンセル待ち登録時に WaitlistConfirmationMail が送信される */
+    public function test_waitlist_confirmation_mail_is_sent_on_registration(): void
+    {
+        Mail::fake();
+
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->addDays(5),
+            'end_date' => now()->addDays(5)->addHours(2),
+            'capacity' => 1,
+        ]);
+        EventAttendance::factory()->for($event)->create(['status' => AttendanceStatus::Applied]);
+        $applicant = User::factory()->create();
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->post(route('events.attendances.store', $event));
+
+        Mail::assertSent(WaitlistConfirmationMail::class, function (WaitlistConfirmationMail $mail) use ($applicant, $event): bool {
+            return $mail->hasTo($applicant->email)
+                && $mail->event->id === $event->id
+                && $mail->position === 1;
+        });
+    }
+
+    /** Applied キャンセル時に昇格したユーザーへ WaitlistPromotedMail が送信される */
+    public function test_waitlist_promoted_mail_is_sent_on_promotion(): void
+    {
+        Mail::fake();
+
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->addDays(5),
+            'end_date' => now()->addDays(5)->addHours(2),
+            'capacity' => 1,
+        ]);
+        $applicant = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($applicant)->create(['status' => AttendanceStatus::Applied]);
+        $waiter = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($waiter)->waitlisted()->create();
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->delete(route('events.attendances.destroy', $event));
+
+        Mail::assertSent(WaitlistPromotedMail::class, function (WaitlistPromotedMail $mail) use ($waiter, $event): bool {
+            return $mail->hasTo($waiter->email)
+                && $mail->event->id === $event->id;
+        });
+    }
+
+    /** Applied キャンセルでキャンセル待ちがいない場合はメールが送信されない */
+    public function test_no_promotion_mail_when_no_waitlist(): void
+    {
+        Mail::fake();
+
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->addDays(5),
+            'end_date' => now()->addDays(5)->addHours(2),
+            'capacity' => 2,
+        ]);
+        $applicant = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($applicant)->create(['status' => AttendanceStatus::Applied]);
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->delete(route('events.attendances.destroy', $event));
+
+        Mail::assertNotSent(WaitlistPromotedMail::class);
     }
 }
