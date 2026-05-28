@@ -138,6 +138,35 @@ class EventController extends Controller
                 ->first()
             : null;
 
-        return view('events.show', compact('event', 'myAttendance'));
+        $myWaitlist = $authUser !== null
+            ? EventAttendance::query()
+                ->where('event_id', $event->id)
+                ->where('user_id', $authUser->id)
+                ->where('status', AttendanceStatus::Waitlisted)
+                ->first()
+            : null;
+
+        $myWaitlistPosition = $myWaitlist !== null
+            ? EventAttendance::query()
+                ->where('event_id', $event->id)
+                ->where('status', AttendanceStatus::Waitlisted)
+                ->where('waitlisted_at', '<=', $myWaitlist->waitlisted_at)
+                ->count()
+            : null;
+
+        $waitlistCount = EventAttendance::query()
+            ->where('event_id', $event->id)
+            ->where('status', AttendanceStatus::Waitlisted)
+            ->count();
+
+        $isWaitlistFull = $waitlistCount >= $event->capacity;
+
+        return view('events.show', compact(
+            'event',
+            'myAttendance',
+            'myWaitlist',
+            'myWaitlistPosition',
+            'isWaitlistFull',
+        ));
     }
 }

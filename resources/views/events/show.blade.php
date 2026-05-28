@@ -230,14 +230,37 @@
                                     </form>
                                 @endif
                             </div>
+                        @elseif ($myWaitlist !== null)
+                            <div class="space-y-2">
+                                <div class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-sm font-semibold">
+                                    キャンセル待ち中（{{ $myWaitlistPosition }}番目）
+                                </div>
+                                <form method="POST" action="{{ route('events.attendances.destroy', $event) }}"
+                                    onsubmit="return confirm('キャンセル待ちを取り消してもよいですか？')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit"
+                                        class="w-full inline-flex items-center justify-center px-4 py-2 rounded-xl border border-slate-300 dark:border-[#3E3E3A] text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800 text-sm transition">
+                                        キャンセルする
+                                    </button>
+                                </form>
+                            </div>
                         @elseif ($hasEnded)
                             <button disabled class="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 text-sm font-semibold cursor-not-allowed">
                                 終了しました
                             </button>
-                        @elseif ($isFull)
+                        @elseif ($isFull && $isWaitlistFull)
                             <button disabled class="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 text-sm font-semibold cursor-not-allowed">
-                                満員です
+                                満員です（キャンセル待ちも満員）
                             </button>
+                        @elseif ($isFull)
+                            <form method="POST" action="{{ route('events.attendances.store', $event) }}">
+                                @csrf
+                                <button type="submit"
+                                    class="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white text-sm font-semibold shadow-sm hover:opacity-90 transition-opacity">
+                                    キャンセル待ちに登録する
+                                </button>
+                            </form>
                         @else
                             <form method="POST" action="{{ route('events.attendances.store', $event) }}">
                                 @csrf
@@ -259,76 +282,124 @@
 
     {{-- 出欠管理（主催者のみ） --}}
     @can('updateAttendance', $event)
+        @php $activeTab = request('tab', 'attendees'); @endphp
         <div class="mt-8 space-y-6">
-            {{-- 参加者セクション --}}
             <section class="rounded-2xl bg-white dark:bg-[#161615] border border-slate-200 dark:border-[#3E3E3A] p-6 sm:p-8 shadow-sm">
                 <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
                     <span class="h-1 w-6 rounded-full bg-gradient-to-r {{ $style['gradient'] }}"></span>
                     出欠管理
                 </h2>
 
-                @unless ($hasStarted)
-                    <p class="mb-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
-                        出欠の記録はイベント開始時刻（{{ $event->event_date->format('Y/m/d H:i') }}）以降に可能になります。
-                    </p>
-                @endunless
-
-                <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">参加者</h3>
-                <div class="space-y-2">
-                    @forelse($event->attendances()->where('status', \App\Enums\AttendanceStatus::Applied)->with('user')->get() as $attendance)
-                        <div class="flex items-center gap-3 rounded-xl border border-slate-100 dark:border-[#3E3E3A] bg-slate-50 dark:bg-[#1a1a18] p-3">
-                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs font-semibold">
-                                {{ mb_substr($attendance->user->name, 0, 1) }}
-                            </span>
-                            <span class="flex-1 text-sm font-medium text-slate-800 dark:text-slate-200">{{ $attendance->user->name }}</span>
-                            <div class="flex gap-2 shrink-0">
-                                <form method="POST" action="{{ route('events.attendances.update', [$event, $attendance]) }}" class="inline">
-                                    @csrf
-                                    @method('PATCH')
-                                    <input type="hidden" name="attended_at" value="{{ now()->format('Y-m-d H:i:s') }}">
-                                    <button
-                                        type="submit"
-                                        @disabled(! $hasStarted)
-                                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {{ ! $hasStarted ? 'opacity-50 cursor-not-allowed ' : '' }}{{ $attendance->attended_at ? 'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-600 dark:hover:bg-emerald-700' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600' }}"
-                                    >
-                                        {{ $attendance->attended_at ? '✓ 参加' : '参加' }}
-                                    </button>
-                                </form>
-
-                                <form method="POST" action="{{ route('events.attendances.update', [$event, $attendance]) }}" class="inline">
-                                    @csrf
-                                    @method('PATCH')
-                                    <input type="hidden" name="attended_at" value="null">
-                                    <button
-                                        type="submit"
-                                        @disabled(! $hasStarted)
-                                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {{ ! $hasStarted ? 'opacity-50 cursor-not-allowed ' : '' }}{{ ! $attendance->attended_at ? 'bg-slate-500 dark:bg-slate-600 text-white hover:bg-slate-600 dark:hover:bg-slate-700' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600' }}"
-                                    >
-                                        {{ ! $attendance->attended_at ? '✓ 未参加' : '未参加' }}
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    @empty
-                        <p class="text-sm text-slate-500 dark:text-slate-400 italic">参加者がいません</p>
-                    @endforelse
+                {{-- タブナビゲーション --}}
+                <div class="flex gap-1 mb-6 border-b border-slate-200 dark:border-[#3E3E3A]">
+                    <a href="{{ route('events.show', $event) }}?tab=attendees"
+                        class="px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors
+                            {{ $activeTab === 'attendees'
+                                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300' }}">
+                        参加者
+                        <span class="ml-1 text-xs bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded-full">
+                            {{ $event->attendances()->where('status', \App\Enums\AttendanceStatus::Applied)->count() }}
+                        </span>
+                    </a>
+                    <a href="{{ route('events.show', $event) }}?tab=waitlist"
+                        class="px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors
+                            {{ $activeTab === 'waitlist'
+                                ? 'border-amber-500 text-amber-600 dark:text-amber-400'
+                                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300' }}">
+                        キャンセル待ち
+                        <span class="ml-1 text-xs bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded-full">
+                            {{ $event->waitlistAttendances()->count() }}
+                        </span>
+                    </a>
                 </div>
 
-                @if ($event->attendances()->where('status', \App\Enums\AttendanceStatus::Cancelled)->exists())
-                    <div class="mt-6">
-                        <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">キャンセル一覧</h3>
+                @if ($activeTab === 'attendees')
+                    @unless ($hasStarted)
+                        <p class="mb-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
+                            出欠の記録はイベント開始時刻（{{ $event->event_date->format('Y/m/d H:i') }}）以降に可能になります。
+                        </p>
+                    @endunless
+
+                    <div class="space-y-2">
+                        @forelse($event->attendances()->where('status', \App\Enums\AttendanceStatus::Applied)->with('user')->get() as $attendance)
+                            <div class="flex items-center gap-3 rounded-xl border border-slate-100 dark:border-[#3E3E3A] bg-slate-50 dark:bg-[#1a1a18] p-3">
+                                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs font-semibold">
+                                    {{ mb_substr($attendance->user->name, 0, 1) }}
+                                </span>
+                                <span class="flex-1 text-sm font-medium text-slate-800 dark:text-slate-200">{{ $attendance->user->name }}</span>
+                                <div class="flex gap-2 shrink-0">
+                                    <form method="POST" action="{{ route('events.attendances.update', [$event, $attendance]) }}" class="inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="attended_at" value="{{ now()->format('Y-m-d H:i:s') }}">
+                                        <button
+                                            type="submit"
+                                            @disabled(! $hasStarted)
+                                            class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {{ ! $hasStarted ? 'opacity-50 cursor-not-allowed ' : '' }}{{ $attendance->attended_at ? 'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-600 dark:hover:bg-emerald-700' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600' }}"
+                                        >
+                                            {{ $attendance->attended_at ? '✓ 参加' : '参加' }}
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ route('events.attendances.update', [$event, $attendance]) }}" class="inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="attended_at" value="null">
+                                        <button
+                                            type="submit"
+                                            @disabled(! $hasStarted)
+                                            class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {{ ! $hasStarted ? 'opacity-50 cursor-not-allowed ' : '' }}{{ ! $attendance->attended_at ? 'bg-slate-500 dark:bg-slate-600 text-white hover:bg-slate-600 dark:hover:bg-slate-700' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600' }}"
+                                        >
+                                            {{ ! $attendance->attended_at ? '✓ 未参加' : '未参加' }}
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        @empty
+                            <p class="text-sm text-slate-500 dark:text-slate-400 italic">参加者がいません</p>
+                        @endforelse
+                    </div>
+
+                    @if ($event->attendances()->where('status', \App\Enums\AttendanceStatus::Cancelled)->exists())
+                        <div class="mt-6">
+                            <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">キャンセル一覧</h3>
+                            <div class="space-y-2">
+                                @foreach($event->attendances()->where('status', \App\Enums\AttendanceStatus::Cancelled)->with('user')->get() as $attendance)
+                                    <div class="flex items-center gap-3 rounded-xl border border-slate-100 dark:border-[#3E3E3A] bg-slate-50 dark:bg-[#1a1a18] p-3 opacity-60">
+                                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs font-semibold">
+                                            {{ mb_substr($attendance->user->name, 0, 1) }}
+                                        </span>
+                                        <span class="flex-1 text-sm text-slate-600 dark:text-slate-400">{{ $attendance->user->name }}</span>
+                                        <span class="text-xs text-slate-400 dark:text-slate-500 shrink-0">キャンセル済み</span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                @else
+                    {{-- キャンセル待ちタブ --}}
+                    @php
+                        $waitlistUsers = $event->waitlistAttendances()->with('user')->orderBy('waitlisted_at', 'asc')->get();
+                    @endphp
+
+                    @if ($waitlistUsers->isEmpty())
+                        <p class="text-sm text-slate-500 dark:text-slate-400 italic">キャンセル待ちのユーザーはいません。</p>
+                    @else
                         <div class="space-y-2">
-                            @foreach($event->attendances()->where('status', \App\Enums\AttendanceStatus::Cancelled)->with('user')->get() as $attendance)
-                                <div class="flex items-center gap-3 rounded-xl border border-slate-100 dark:border-[#3E3E3A] bg-slate-50 dark:bg-[#1a1a18] p-3 opacity-60">
-                                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs font-semibold">
-                                        {{ mb_substr($attendance->user->name, 0, 1) }}
+                            @foreach($waitlistUsers as $index => $attendance)
+                                <div class="flex items-center gap-3 rounded-xl border border-amber-100 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10 p-3">
+                                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 text-xs font-semibold">
+                                        {{ $index + 1 }}
                                     </span>
-                                    <span class="flex-1 text-sm text-slate-600 dark:text-slate-400">{{ $attendance->user->name }}</span>
-                                    <span class="text-xs text-slate-400 dark:text-slate-500 shrink-0">キャンセル済み</span>
+                                    <span class="flex-1 text-sm font-medium text-slate-800 dark:text-slate-200">{{ $attendance->user->name }}</span>
+                                    <span class="text-xs text-slate-400 dark:text-slate-500 shrink-0">
+                                        {{ $attendance->waitlisted_at->format('Y/m/d H:i') }} 登録
+                                    </span>
                                 </div>
                             @endforeach
                         </div>
-                    </div>
+                    @endif
                 @endif
             </section>
         </div>
