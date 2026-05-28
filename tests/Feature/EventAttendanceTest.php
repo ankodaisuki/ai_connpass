@@ -8,7 +8,9 @@ use App\Mail\WaitlistConfirmationMail;
 use App\Mail\WaitlistPromotedMail;
 use App\Models\Event;
 use App\Models\EventAttendance;
+use App\Models\GoogleCalendarToken;
 use App\Models\User;
+use App\Services\GoogleCalendarService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
@@ -716,5 +718,47 @@ class EventAttendanceTest extends TestCase
             ->delete(route('events.attendances.destroy', $event));
 
         Mail::assertNotSent(WaitlistPromotedMail::class);
+    }
+
+    // ==========================================
+    // waitlist - Google カレンダー連携
+    // ==========================================
+
+    /** 昇格時に Google カレンダーへ予定が追加される */
+    public function test_promotion_adds_event_to_google_calendar(): void
+    {
+        Mail::fake();
+
+        $calendarService = $this->mock(GoogleCalendarService::class);
+        $calendarService->shouldReceive('createEvent')
+            ->once()
+            ->andReturn('google-event-id-123');
+
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->addDays(5),
+            'end_date' => now()->addDays(5)->addHours(2),
+            'capacity' => 1,
+        ]);
+        $applicant = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($applicant)->create(['status' => AttendanceStatus::Applied]);
+
+        $waiter = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($waiter)->waitlisted()->create();
+
+        // waiter が Google カレンダー連携済みであることを設定
+        GoogleCalendarToken::factory()->for($waiter)->create();
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->delete(route('events.attendances.destroy', $event));
+
+        $this->assertDatabaseHas('event_attendances', [
+            'event_id' => $event->id,
+            'user_id' => $waiter->id,
+            'status' => AttendanceStatus::Applied->value,
+            'google_calendar_event_id' => 'google-event-id-123',
+        ]);
     }
 }
