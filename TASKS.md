@@ -380,6 +380,130 @@ connpass のように、ユーザーが自分の Google カレンダーへイベ
 
 ---
 
+## 🔔 キャンセル待ち機能
+
+設計仕様: `docs/superpowers/specs/2026-05-26-waitlist-design.md`
+実装計画: `docs/superpowers/plans/2026-05-26-waitlist.md`
+
+### 実装内容
+
+- [ ] Task 1: マイグレーション・Enum・Model・Factory 更新
+  - [ ] `waitlisted_at` カラム追加マイグレーション
+  - [ ] `AttendanceStatus::Waitlisted = 2` 追加
+  - [ ] `EventAttendance` に `waitlisted_at` fillable/cast 追加
+  - [ ] `Event` に `waitlistAttendances()` リレーション追加
+  - [ ] `EventAttendanceFactory` に `waitlisted()` ステート追加
+
+- [ ] Task 2: サービス層 - キャンセル待ち登録
+  - [ ] `apply()` の戻り値を `AttendanceStatus` に変更
+  - [ ] `waitlistApply()` メソッド追加
+  - [ ] コントローラーの flash メッセージ分岐
+
+- [ ] Task 3: サービス層 - 自動昇格
+  - [ ] `cancel()` を Applied / Waitlisted 両対応に変更
+  - [ ] `promoteFromWaitlist()` メソッド追加
+
+- [ ] Task 4: メール送信
+  - [ ] `WaitlistConfirmationMail` クラス + ビュー
+  - [ ] `WaitlistPromotedMail` クラス + ビュー
+
+- [ ] Task 5: Google カレンダー連携（昇格時）テスト追加
+
+- [ ] Task 6: EventController + UI 更新
+  - [ ] `show()` に `$myWaitlist`・`$myWaitlistPosition`・`$isWaitlistFull` 追加
+  - [ ] `show.blade.php` にキャンセル待ちボタン・バッジ追加
+  - [ ] 主催者セクションにキャンセル待ちタブ追加
+
+---
+
+## 🚀 feature/waitlist リリース前対応
+
+### 背景
+
+`feature/waitlist` を `main` へマージすると Railway が自動デプロイされ本番に反映される。
+リリース前に下記の問題を修正し、ロールバック手順を整備する。
+
+---
+
+### ① Race condition の修正【要対応】
+
+**問題**
+- 残り枠1つの状態で複数人が同時申し込みすると、check-then-act パターンのため定員オーバーで全員 Applied になる可能性がある。
+- 複数人が同時にキャンセルすると、昇格処理が競合し1人しか昇格されないまま複数枠が空く可能性がある。
+
+**修正箇所**: `app/Services/EventAttendanceService.php`
+
+- [x] `apply()` — 申し込み枠チェック前に `lockForUpdate()` でレコードをロック
+- [x] `promoteFromWaitlist()` — キャンセル待ち取得時に `lockForUpdate()` でレコードをロック
+
+---
+
+### ③ ロールバック対策【要対応】
+
+**問題**
+`make_applied_at_nullable` の `down()` が Waitlisted レコード（`applied_at = NULL`）を持つ状態で実行されると、NOT NULL 制約違反でロールバックが失敗する。
+
+**修正箇所**: `database/migrations/2026_05_27_231604_make_applied_at_nullable_in_event_attendances.php`
+
+- [x] `down()` に NULL の `applied_at` を埋める処理を追加してからカラム変更を実行
+
+---
+
+### リリース手順
+
+1. mainマージ前に `v2` タグを付与（切り戻しの基点）
+   ```bash
+   git tag v2 main
+   git push origin v2
+   ```
+2. `feature/waitlist` の PR をマージ（Railway が自動デプロイ・マイグレーション実行）
+3. 本番動作確認手順を実施（下記参照）
+
+**メンテナンスウィンドウ**: 不要（マイグレーションはデータ量が少ないため実質ゼロダウンタイム）
+
+---
+
+### 本番動作確認手順
+
+リリース後に以下を順番に確認する。すべてパスすれば切り戻し不要。
+
+| # | 確認内容 | 期待する結果 |
+|---|---|---|
+| 1 | 満員のイベント詳細ページを開く | 「キャンセル待ちに登録する」ボタンが表示される |
+| 2 | キャンセル待ちに登録する | 登録完了メッセージが表示され、確認メールが届く |
+| 3 | 申込済みユーザーが参加キャンセルする | キャンセル待ち1位に昇格通知メールが届く |
+| 4 | 主催者がイベント詳細を開く | 主催者タブに「キャンセル待ち」一覧が表示される |
+| 5 | キャンセル待ちも満員のイベントに申し込む | 「キャンセル待ちも満員です」エラーが表示される |
+
+---
+
+### 切り戻し判断基準
+
+| 状況 | 対応 |
+|---|---|
+| Waitlisted機能が正常に動作している | **対策前進**（個別不具合はhotfixで対応） |
+| Waitlisted機能が全く動作しない（申し込みエラー・マイグレーション失敗等） | **旧資材に切り戻し** |
+
+---
+
+### 切り戻し手順（Waitlisted機能が全く動作しない場合のみ）
+
+```bash
+# Railway で v2 タグのコミットを指定して再デプロイ
+# または git revert でマージコミットを打ち消してプッシュ
+git revert -m 1 <merge-commit-hash>
+git push origin main
+```
+
+**切り戻し後の注意**
+- Waitlisted レコードが存在する場合は下記SQLで強制キャンセル扱いにする
+  ```sql
+  UPDATE event_attendances SET status = 1, cancelled_at = NOW() WHERE status = 2;
+  ```
+- 対象ユーザーへの個別通知が必要
+
+---
+
 ## 📝 開発ワークフロー
 
 各タスク完了時：

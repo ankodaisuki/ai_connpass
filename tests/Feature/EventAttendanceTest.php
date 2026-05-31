@@ -4,10 +4,15 @@ namespace Tests\Feature;
 
 use App\Enums\AttendanceStatus;
 use App\Enums\EventStatus;
+use App\Mail\WaitlistConfirmationMail;
+use App\Mail\WaitlistPromotedMail;
 use App\Models\Event;
 use App\Models\EventAttendance;
+use App\Models\GoogleCalendarToken;
 use App\Models\User;
+use App\Services\GoogleCalendarService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class EventAttendanceTest extends TestCase
@@ -145,8 +150,8 @@ class EventAttendanceTest extends TestCase
             ->assertSessionHasErrors(['attendance']);
     }
 
-    /** 定員オーバーは申し込みエラー */
-    public function test_store_fails_when_capacity_is_full(): void
+    /** 定員オーバー時はキャンセル待ちに登録される */
+    public function test_store_registers_waitlist_when_capacity_is_full(): void
     {
         $owner = User::factory()->create();
         $event = Event::factory()->for($owner)->create([
@@ -164,7 +169,13 @@ class EventAttendanceTest extends TestCase
             ->from(route('events.show', $event))
             ->post(route('events.attendances.store', $event))
             ->assertRedirect(route('events.show', $event))
-            ->assertSessionHasErrors(['attendance']);
+            ->assertSessionHas('success', 'キャンセル待ちに登録しました。');
+
+        $this->assertDatabaseHas('event_attendances', [
+            'event_id' => $event->id,
+            'user_id' => $applicant->id,
+            'status' => AttendanceStatus::Waitlisted->value,
+        ]);
     }
 
     /** 重複申し込みはエラー */
@@ -431,5 +442,323 @@ class EventAttendanceTest extends TestCase
             ->get(route('events.show', $event));
 
         $response->assertSee('キャンセル一覧');
+    }
+
+    // ==========================================
+    // waitlist - キャンセル待ち登録
+    // ==========================================
+
+    /** 満員時に申し込むとキャンセル待ちに登録され flash に success が入る */
+    public function test_store_registers_waitlist_when_event_is_full(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->addDays(5),
+            'end_date' => now()->addDays(5)->addHours(2),
+            'capacity' => 2,
+        ]);
+        EventAttendance::factory()->for($event)->count(2)->create(['status' => AttendanceStatus::Applied]);
+        $applicant = User::factory()->create();
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->post(route('events.attendances.store', $event))
+            ->assertRedirect(route('events.show', $event))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('event_attendances', [
+            'event_id' => $event->id,
+            'user_id' => $applicant->id,
+            'status' => AttendanceStatus::Waitlisted->value,
+        ]);
+    }
+
+    /** flash メッセージが Applied と Waitlisted で異なる */
+    public function test_store_flash_message_differs_between_applied_and_waitlisted(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->addDays(5),
+            'end_date' => now()->addDays(5)->addHours(2),
+            'capacity' => 1,
+        ]);
+        $firstUser = User::factory()->create();
+        $secondUser = User::factory()->create();
+
+        $this->actingAs($firstUser)
+            ->from(route('events.show', $event))
+            ->post(route('events.attendances.store', $event))
+            ->assertSessionHas('success', '参加申し込みが完了しました。');
+
+        $this->actingAs($secondUser)
+            ->from(route('events.show', $event))
+            ->post(route('events.attendances.store', $event))
+            ->assertSessionHas('success', 'キャンセル待ちに登録しました。');
+    }
+
+    /** キャンセル待ちも満員の場合は登録拒否（エラー表示） */
+    public function test_store_rejects_when_waitlist_is_also_full(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->addDays(5),
+            'end_date' => now()->addDays(5)->addHours(2),
+            'capacity' => 2,
+        ]);
+        EventAttendance::factory()->for($event)->count(2)->create(['status' => AttendanceStatus::Applied]);
+        EventAttendance::factory()->for($event)->count(2)->waitlisted()->create();
+        $applicant = User::factory()->create();
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->post(route('events.attendances.store', $event))
+            ->assertSessionHasErrors('attendance');
+
+        $this->assertDatabaseMissing('event_attendances', [
+            'event_id' => $event->id,
+            'user_id' => $applicant->id,
+        ]);
+    }
+
+    /** すでにキャンセル待ち登録済みの場合は重複登録拒否 */
+    public function test_store_rejects_duplicate_waitlist(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->addDays(5),
+            'end_date' => now()->addDays(5)->addHours(2),
+            'capacity' => 1,
+        ]);
+        EventAttendance::factory()->for($event)->create(['status' => AttendanceStatus::Applied]);
+        $applicant = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($applicant)->waitlisted()->create();
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->post(route('events.attendances.store', $event))
+            ->assertSessionHasErrors('attendance');
+    }
+
+    // ==========================================
+    // waitlist - 自動昇格
+    // ==========================================
+
+    /** Applied キャンセル時にキャンセル待ち最古のユーザーが Applied に昇格する */
+    public function test_cancel_promotes_oldest_waitlisted_user_when_applied_user_cancels(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->addDays(5),
+            'end_date' => now()->addDays(5)->addHours(2),
+            'capacity' => 1,
+        ]);
+        $applicant = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($applicant)->create(['status' => AttendanceStatus::Applied]);
+
+        $firstWaiter = User::factory()->create();
+        $secondWaiter = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($firstWaiter)->create([
+            'status' => AttendanceStatus::Waitlisted,
+            'waitlisted_at' => now()->subMinutes(10),
+        ]);
+        EventAttendance::factory()->for($event)->for($secondWaiter)->create([
+            'status' => AttendanceStatus::Waitlisted,
+            'waitlisted_at' => now()->subMinutes(5),
+        ]);
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->delete(route('events.attendances.destroy', $event));
+
+        $this->assertDatabaseHas('event_attendances', [
+            'event_id' => $event->id,
+            'user_id' => $firstWaiter->id,
+            'status' => AttendanceStatus::Applied->value,
+        ]);
+        $this->assertDatabaseHas('event_attendances', [
+            'event_id' => $event->id,
+            'user_id' => $secondWaiter->id,
+            'status' => AttendanceStatus::Waitlisted->value,
+        ]);
+    }
+
+    /** キャンセル待ちが存在しない場合は昇格処理が何も起こさない */
+    public function test_cancel_does_nothing_when_no_waitlist_exists(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->addDays(5),
+            'end_date' => now()->addDays(5)->addHours(2),
+            'capacity' => 2,
+        ]);
+        $applicant = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($applicant)->create(['status' => AttendanceStatus::Applied]);
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->delete(route('events.attendances.destroy', $event))
+            ->assertRedirect();
+
+        $this->assertDatabaseCount('event_attendances', 1);
+    }
+
+    /** Waitlisted キャンセル時は自動昇格が発生しない */
+    public function test_cancel_waitlist_does_not_trigger_promotion(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->addDays(5),
+            'end_date' => now()->addDays(5)->addHours(2),
+            'capacity' => 1,
+        ]);
+        EventAttendance::factory()->for($event)->create(['status' => AttendanceStatus::Applied]);
+        $waiter1 = User::factory()->create();
+        $waiter2 = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($waiter1)->create([
+            'status' => AttendanceStatus::Waitlisted,
+            'waitlisted_at' => now()->subMinutes(10),
+        ]);
+        EventAttendance::factory()->for($event)->for($waiter2)->create([
+            'status' => AttendanceStatus::Waitlisted,
+            'waitlisted_at' => now()->subMinutes(5),
+        ]);
+
+        $this->actingAs($waiter1)
+            ->from(route('events.show', $event))
+            ->delete(route('events.attendances.destroy', $event));
+
+        $this->assertDatabaseHas('event_attendances', [
+            'event_id' => $event->id,
+            'user_id' => $waiter2->id,
+            'status' => AttendanceStatus::Waitlisted->value,
+        ]);
+    }
+
+    // ==========================================
+    // waitlist - メール通知
+    // ==========================================
+
+    /** キャンセル待ち登録時に WaitlistConfirmationMail が送信される */
+    public function test_waitlist_confirmation_mail_is_sent_on_registration(): void
+    {
+        Mail::fake();
+
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->addDays(5),
+            'end_date' => now()->addDays(5)->addHours(2),
+            'capacity' => 1,
+        ]);
+        EventAttendance::factory()->for($event)->create(['status' => AttendanceStatus::Applied]);
+        $applicant = User::factory()->create();
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->post(route('events.attendances.store', $event));
+
+        Mail::assertSent(WaitlistConfirmationMail::class, function (WaitlistConfirmationMail $mail) use ($applicant, $event): bool {
+            return $mail->hasTo($applicant->email)
+                && $mail->event->id === $event->id
+                && $mail->position === 1;
+        });
+    }
+
+    /** Applied キャンセル時に昇格したユーザーへ WaitlistPromotedMail が送信される */
+    public function test_waitlist_promoted_mail_is_sent_on_promotion(): void
+    {
+        Mail::fake();
+
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->addDays(5),
+            'end_date' => now()->addDays(5)->addHours(2),
+            'capacity' => 1,
+        ]);
+        $applicant = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($applicant)->create(['status' => AttendanceStatus::Applied]);
+        $waiter = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($waiter)->waitlisted()->create();
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->delete(route('events.attendances.destroy', $event));
+
+        Mail::assertSent(WaitlistPromotedMail::class, function (WaitlistPromotedMail $mail) use ($waiter, $event): bool {
+            return $mail->hasTo($waiter->email)
+                && $mail->event->id === $event->id;
+        });
+    }
+
+    /** Applied キャンセルでキャンセル待ちがいない場合はメールが送信されない */
+    public function test_no_promotion_mail_when_no_waitlist(): void
+    {
+        Mail::fake();
+
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->addDays(5),
+            'end_date' => now()->addDays(5)->addHours(2),
+            'capacity' => 2,
+        ]);
+        $applicant = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($applicant)->create(['status' => AttendanceStatus::Applied]);
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->delete(route('events.attendances.destroy', $event));
+
+        Mail::assertNotSent(WaitlistPromotedMail::class);
+    }
+
+    // ==========================================
+    // waitlist - Google カレンダー連携
+    // ==========================================
+
+    /** 昇格時に Google カレンダーへ予定が追加される */
+    public function test_promotion_adds_event_to_google_calendar(): void
+    {
+        Mail::fake();
+
+        $calendarService = $this->mock(GoogleCalendarService::class);
+        $calendarService->shouldReceive('createEvent')
+            ->once()
+            ->andReturn('google-event-id-123');
+
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->addDays(5),
+            'end_date' => now()->addDays(5)->addHours(2),
+            'capacity' => 1,
+        ]);
+        $applicant = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($applicant)->create(['status' => AttendanceStatus::Applied]);
+
+        $waiter = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($waiter)->waitlisted()->create();
+
+        // waiter が Google カレンダー連携済みであることを設定
+        GoogleCalendarToken::factory()->for($waiter)->create();
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->delete(route('events.attendances.destroy', $event));
+
+        $this->assertDatabaseHas('event_attendances', [
+            'event_id' => $event->id,
+            'user_id' => $waiter->id,
+            'status' => AttendanceStatus::Applied->value,
+            'google_calendar_event_id' => 'google-event-id-123',
+        ]);
     }
 }

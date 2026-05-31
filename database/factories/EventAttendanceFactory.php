@@ -49,4 +49,16 @@ class EventAttendanceFactory extends Factory
             'attended_at' => now(),
         ]);
     }
+
+    /**
+     * キャンセル待ち状態の申し込みを生成
+     */
+    public function waitlisted(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => AttendanceStatus::Waitlisted,
+            'waitlisted_at' => now(),
+            'applied_at' => null,
+        ]);
+    }
 }

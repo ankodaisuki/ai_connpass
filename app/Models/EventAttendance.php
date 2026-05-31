@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'applied_at',
     'cancelled_at',
     'attended_at',
+    'waitlisted_at',
     'google_calendar_event_id',
 ])]
 class EventAttendance extends Model
@@ -38,6 +39,7 @@ class EventAttendance extends Model
             'applied_at' => 'datetime',
             'cancelled_at' => 'datetime',
             'attended_at' => 'datetime',
+            'waitlisted_at' => 'datetime',
             'status' => AttendanceStatus::class,
         ];
     }
