@@ -9,6 +9,7 @@ use App\Mail\WaitlistPromotedMail;
 use App\Models\Event;
 use App\Models\EventAttendance;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -31,48 +32,53 @@ class EventAttendanceService
             throw new AttendanceException('自分のイベントには申し込めません。');
         }
 
-        $existing = EventAttendance::query()
-            ->where('event_id', $event->id)
-            ->where('user_id', $user->id)
-            ->first();
+        return DB::transaction(function () use ($event, $user) {
+            // イベント行をロックして同時申し込みを直列化する
+            $event = Event::where('id', $event->id)->lockForUpdate()->first();
 
-        if ($existing !== null && $existing->status === AttendanceStatus::Applied) {
-            throw new AttendanceException('すでに申し込み済みです。');
-        }
+            $existing = EventAttendance::query()
+                ->where('event_id', $event->id)
+                ->where('user_id', $user->id)
+                ->first();
 
-        if ($existing !== null && $existing->status === AttendanceStatus::Waitlisted) {
-            throw new AttendanceException('すでにキャンセル待ちに登録されています。');
-        }
+            if ($existing !== null && $existing->status === AttendanceStatus::Applied) {
+                throw new AttendanceException('すでに申し込み済みです。');
+            }
 
-        $appliedCount = EventAttendance::query()
-            ->where('event_id', $event->id)
-            ->where('status', AttendanceStatus::Applied)
-            ->count();
+            if ($existing !== null && $existing->status === AttendanceStatus::Waitlisted) {
+                throw new AttendanceException('すでにキャンセル待ちに登録されています。');
+            }
 
-        if ($appliedCount >= $event->capacity) {
-            return $this->waitlistApply($event, $user, $existing);
-        }
+            $appliedCount = EventAttendance::query()
+                ->where('event_id', $event->id)
+                ->where('status', AttendanceStatus::Applied)
+                ->count();
 
-        if ($existing !== null) {
-            $existing->update([
-                'status' => AttendanceStatus::Applied,
-                'applied_at' => now(),
-                'cancelled_at' => null,
-                'waitlisted_at' => null,
-            ]);
-            $attendance = $existing;
-        } else {
-            $attendance = EventAttendance::create([
-                'event_id' => $event->id,
-                'user_id' => $user->id,
-                'status' => AttendanceStatus::Applied,
-                'applied_at' => now(),
-            ]);
-        }
+            if ($appliedCount >= $event->capacity) {
+                return $this->waitlistApply($event, $user, $existing);
+            }
 
-        $this->syncCalendarOnApply($event, $user, $attendance);
+            if ($existing !== null) {
+                $existing->update([
+                    'status' => AttendanceStatus::Applied,
+                    'applied_at' => now(),
+                    'cancelled_at' => null,
+                    'waitlisted_at' => null,
+                ]);
+                $attendance = $existing;
+            } else {
+                $attendance = EventAttendance::create([
+                    'event_id' => $event->id,
+                    'user_id' => $user->id,
+                    'status' => AttendanceStatus::Applied,
+                    'applied_at' => now(),
+                ]);
+            }
 
-        return AttendanceStatus::Applied;
+            $this->syncCalendarOnApply($event, $user, $attendance);
+
+            return AttendanceStatus::Applied;
+        });
     }
 
     /**
@@ -126,37 +132,40 @@ class EventAttendanceService
      */
     public function cancel(Event $event, User $user): void
     {
-        $attendance = EventAttendance::query()
-            ->where('event_id', $event->id)
-            ->where('user_id', $user->id)
-            ->whereIn('status', [AttendanceStatus::Applied, AttendanceStatus::Waitlisted])
-            ->first();
+        DB::transaction(function () use ($event, $user) {
+            $attendance = EventAttendance::query()
+                ->where('event_id', $event->id)
+                ->where('user_id', $user->id)
+                ->whereIn('status', [AttendanceStatus::Applied, AttendanceStatus::Waitlisted])
+                ->lockForUpdate()
+                ->first();
 
-        if ($attendance === null) {
-            throw new AttendanceException('申し込みが見つかりません。');
-        }
-
-        $wasApplied = $attendance->status === AttendanceStatus::Applied;
-
-        if ($wasApplied) {
-            if ($event->event_date->isPast() && $attendance->attended_at !== null) {
-                throw new AttendanceException('出席済みのためキャンセルできません。');
+            if ($attendance === null) {
+                throw new AttendanceException('申し込みが見つかりません。');
             }
 
-            if ($event->event_date->isPast()) {
-                throw new AttendanceException('このイベントはすでに開始しています。');
+            $wasApplied = $attendance->status === AttendanceStatus::Applied;
+
+            if ($wasApplied) {
+                if ($event->event_date->isPast() && $attendance->attended_at !== null) {
+                    throw new AttendanceException('出席済みのためキャンセルできません。');
+                }
+
+                if ($event->event_date->isPast()) {
+                    throw new AttendanceException('このイベントはすでに開始しています。');
+                }
             }
-        }
 
-        $attendance->update([
-            'status' => AttendanceStatus::Cancelled,
-            'cancelled_at' => now(),
-        ]);
+            $attendance->update([
+                'status' => AttendanceStatus::Cancelled,
+                'cancelled_at' => now(),
+            ]);
 
-        if ($wasApplied) {
-            $this->syncCalendarOnCancel($user, $attendance);
-            $this->promoteFromWaitlist($event);
-        }
+            if ($wasApplied) {
+                $this->syncCalendarOnCancel($user, $attendance);
+                $this->promoteFromWaitlist($event);
+            }
+        });
     }
 
     /**
@@ -169,6 +178,7 @@ class EventAttendanceService
             ->where('event_id', $event->id)
             ->where('status', AttendanceStatus::Waitlisted)
             ->orderBy('waitlisted_at', 'asc')
+            ->lockForUpdate()
             ->first();
 
         if ($waitlisted === null) {

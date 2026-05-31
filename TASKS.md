@@ -416,6 +416,67 @@ connpass のように、ユーザーが自分の Google カレンダーへイベ
 
 ---
 
+## 🚀 feature/waitlist リリース前対応
+
+### 背景
+
+`feature/waitlist` を `main` へマージすると Railway が自動デプロイされ本番に反映される。
+リリース前に下記の問題を修正し、ロールバック手順を整備する。
+
+---
+
+### ① Race condition の修正【要対応】
+
+**問題**
+- 残り枠1つの状態で複数人が同時申し込みすると、check-then-act パターンのため定員オーバーで全員 Applied になる可能性がある。
+- 複数人が同時にキャンセルすると、昇格処理が競合し1人しか昇格されないまま複数枠が空く可能性がある。
+
+**修正箇所**: `app/Services/EventAttendanceService.php`
+
+- [x] `apply()` — 申し込み枠チェック前に `lockForUpdate()` でレコードをロック
+- [x] `promoteFromWaitlist()` — キャンセル待ち取得時に `lockForUpdate()` でレコードをロック
+
+---
+
+### ③ ロールバック対策【要対応】
+
+**問題**
+`make_applied_at_nullable` の `down()` が Waitlisted レコード（`applied_at = NULL`）を持つ状態で実行されると、NOT NULL 制約違反でロールバックが失敗する。
+
+**修正箇所**: `database/migrations/2026_05_27_231604_make_applied_at_nullable_in_event_attendances.php`
+
+- [x] `down()` に NULL の `applied_at` を埋める処理を追加してからカラム変更を実行
+
+---
+
+### リリース手順
+
+1. 上記①③の修正をコミット・プッシュ
+2. `feature/waitlist` の PR をマージ（Railway が自動デプロイ・マイグレーション実行）
+3. 本番で動作確認
+
+**メンテナンスウィンドウ**: 不要（マイグレーションはデータ量が少ないため実質ゼロダウンタイム）
+
+---
+
+### ロールバック手順（問題発生時のみ）
+
+```bash
+# 1. マイグレーションをロールバック（down() に NULL 埋め処理が入っているため安全）
+php artisan migrate:rollback
+
+# 2. Waitlisted レコードをキャンセル扱いに変換（旧コードは status=2 を認識しないため）
+php artisan tinker --execute 'DB::table("event_attendances")->where("status", 2)->update(["status" => 1, "cancelled_at" => now()]);'
+
+# 3. 影響ユーザーに手動で通知（キャンセル待ちが無効になった旨）
+```
+
+**ロールバック後の注意**
+- キャンセル待ちユーザーは強制キャンセル扱いになるため、再度申し込みが必要になる
+- 対象ユーザーへの個別通知が必要
+
+---
+
 ## 📝 開発ワークフロー
 
 各タスク完了時：
