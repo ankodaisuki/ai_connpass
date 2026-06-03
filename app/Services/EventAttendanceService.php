@@ -32,7 +32,9 @@ class EventAttendanceService
             throw new AttendanceException('自分のイベントには申し込めません。');
         }
 
-        return DB::transaction(function () use ($event, $user) {
+        $waitlistPosition = null;
+
+        $status = DB::transaction(function () use ($event, $user, &$waitlistPosition) {
             // イベント行をロックして同時申し込みを直列化する
             $event = Event::where('id', $event->id)->lockForUpdate()->first();
 
@@ -55,7 +57,9 @@ class EventAttendanceService
                 ->count();
 
             if ($appliedCount >= $event->capacity) {
-                return $this->waitlistApply($event, $user, $existing);
+                $waitlistPosition = $this->waitlistApply($event, $user, $existing);
+
+                return AttendanceStatus::Waitlisted;
             }
 
             if ($existing !== null) {
@@ -79,6 +83,20 @@ class EventAttendanceService
 
             return AttendanceStatus::Applied;
         });
+
+        if ($waitlistPosition !== null) {
+            try {
+                Mail::to($user)->send(new WaitlistConfirmationMail($event, $waitlistPosition));
+            } catch (\Throwable $e) {
+                Log::warning('キャンセル待ち確認メール送信に失敗', [
+                    'user_id' => $user->id,
+                    'event_id' => $event->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $status;
     }
 
     /**
@@ -86,7 +104,7 @@ class EventAttendanceService
      *
      * @throws AttendanceException
      */
-    private function waitlistApply(Event $event, User $user, ?EventAttendance $existing): AttendanceStatus
+    private function waitlistApply(Event $event, User $user, ?EventAttendance $existing): int
     {
         $waitlistedCount = EventAttendance::query()
             ->where('event_id', $event->id)
@@ -114,15 +132,11 @@ class EventAttendanceService
             ]);
         }
 
-        $position = EventAttendance::query()
+        return EventAttendance::query()
             ->where('event_id', $event->id)
             ->where('status', AttendanceStatus::Waitlisted)
             ->where('waitlisted_at', '<=', $attendance->waitlisted_at)
             ->count();
-
-        Mail::to($user)->send(new WaitlistConfirmationMail($event, $position));
-
-        return AttendanceStatus::Waitlisted;
     }
 
     /**
@@ -132,7 +146,9 @@ class EventAttendanceService
      */
     public function cancel(Event $event, User $user): void
     {
-        DB::transaction(function () use ($event, $user) {
+        $promotedUser = null;
+
+        DB::transaction(function () use ($event, $user, &$promotedUser) {
             $attendance = EventAttendance::query()
                 ->where('event_id', $event->id)
                 ->where('user_id', $user->id)
@@ -163,15 +179,27 @@ class EventAttendanceService
 
             if ($wasApplied) {
                 $this->syncCalendarOnCancel($user, $attendance);
-                $this->promoteFromWaitlist($event);
+                $promotedUser = $this->promoteFromWaitlist($event);
             }
         });
+
+        if ($promotedUser !== null) {
+            try {
+                Mail::to($promotedUser)->send(new WaitlistPromotedMail($event));
+            } catch (\Throwable $e) {
+                Log::warning('キャンセル待ち昇格メール送信に失敗', [
+                    'user_id' => $promotedUser->id,
+                    'event_id' => $event->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     /**
      * キャンセル待ち最古のユーザーを Applied に昇格する
      */
-    private function promoteFromWaitlist(Event $event): void
+    private function promoteFromWaitlist(Event $event): ?User
     {
         $waitlisted = EventAttendance::query()
             ->with('user')
@@ -182,7 +210,7 @@ class EventAttendanceService
             ->first();
 
         if ($waitlisted === null) {
-            return;
+            return null;
         }
 
         $waitlisted->update([
@@ -191,8 +219,9 @@ class EventAttendanceService
             'waitlisted_at' => null,
         ]);
 
-        Mail::to($waitlisted->user)->send(new WaitlistPromotedMail($event));
         $this->syncCalendarOnApply($event, $waitlisted->user, $waitlisted);
+
+        return $waitlisted->user;
     }
 
     private function syncCalendarOnApply(Event $event, User $user, EventAttendance $attendance): void
