@@ -86,7 +86,7 @@ class EventAttendanceService
 
         if ($waitlistPosition !== null) {
             try {
-                Mail::to($user)->send(new WaitlistConfirmationMail($event, $waitlistPosition));
+                Mail::to($user->email)->send(new WaitlistConfirmationMail($event, $waitlistPosition));
             } catch (\Throwable $e) {
                 Log::warning('キャンセル待ち確認メール送信に失敗', [
                     'user_id' => $user->id,
@@ -185,7 +185,7 @@ class EventAttendanceService
 
         if ($promotedUser !== null) {
             try {
-                Mail::to($promotedUser)->send(new WaitlistPromotedMail($event));
+                Mail::to($promotedUser->email)->send(new WaitlistPromotedMail($event));
             } catch (\Throwable $e) {
                 Log::warning('キャンセル待ち昇格メール送信に失敗', [
                     'user_id' => $promotedUser->id,
