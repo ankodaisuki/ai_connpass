@@ -297,13 +297,15 @@ class EventAttendanceTest extends TestCase
             'status' => EventStatus::Published,
         ]);
         $applicant = User::factory()->create();
-        EventAttendance::factory()->for($event)->for($applicant)->waitlisted()->create();
+        $attendance = EventAttendance::factory()->for($event)->for($applicant)->waitlisted()->create();
 
         $this->actingAs($applicant)
             ->from(route('events.show', $event))
             ->delete(route('events.attendances.destroy', $event))
             ->assertRedirect(route('events.show', $event))
             ->assertSessionHasErrors(['attendance']);
+
+        $this->assertSame(AttendanceStatus::Waitlisted, $attendance->fresh()->status);
     }
 
     // ==========================================
