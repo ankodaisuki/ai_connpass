@@ -72,6 +72,19 @@ class EventAttendance extends Model
     }
 
     /**
+     * キャンセル待ち（Waitlisted）かつ公開中（Published）イベントの参加レコードに限定する。
+     * マイページのキャンセル待ち一覧用のスコープ。
+     */
+    #[Scope]
+    protected function waitlistedToPublishedEvent(Builder $query): void
+    {
+        $query->where('status', AttendanceStatus::Waitlisted)
+            ->whereHas('event', function (Builder $query): void {
+                $query->where('status', EventStatus::Published);
+            });
+    }
+
+    /**
      * 申し込み対象のイベント
      *
      * @return BelongsTo<Event, $this>

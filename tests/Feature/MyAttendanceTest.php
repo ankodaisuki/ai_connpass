@@ -172,4 +172,62 @@ class MyAttendanceTest extends TestCase
         $response->assertDontSee('attended-deleted-event');
         $response->assertDontSee('others-attended-event');
     }
+
+    // ==========================================
+    // waitlist tab
+    // ==========================================
+
+    /** ?tab=waitlist でキャンセル待ちのみ表示される */
+    public function test_waitlist_tab_shows_only_own_waitlisted_attendances(): void
+    {
+        $user = User::factory()->create();
+        $organizer = User::factory()->create();
+
+        $waitlistedEvent = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'title' => 'waitlisted-event']);
+        $appliedEvent = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'title' => 'applied-event']);
+
+        EventAttendance::factory()->for($waitlistedEvent)->for($user)->waitlisted()->create();
+        EventAttendance::factory()->for($appliedEvent)->for($user)->create();
+
+        $response = $this->actingAs($user)->get(route('my.attendances', ['tab' => 'waitlist']));
+
+        $response->assertSee('waitlisted-event');
+        $response->assertDontSee('applied-event');
+    }
+
+    /** ?tab=waitlist で非公開イベントのキャンセル待ちは除外される */
+    public function test_waitlist_tab_excludes_non_published_events(): void
+    {
+        $user = User::factory()->create();
+        $organizer = User::factory()->create();
+
+        $published = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'title' => 'waitlist-published']);
+        $draft = Event::factory()->for($organizer)->create(['status' => EventStatus::Draft, 'title' => 'waitlist-draft']);
+
+        EventAttendance::factory()->for($published)->for($user)->waitlisted()->create();
+        EventAttendance::factory()->for($draft)->for($user)->waitlisted()->create();
+
+        $response = $this->actingAs($user)->get(route('my.attendances', ['tab' => 'waitlist']));
+
+        $response->assertSee('waitlist-published');
+        $response->assertDontSee('waitlist-draft');
+    }
+
+    /** デフォルト（パラメータなし）では Applied タブが表示される */
+    public function test_default_tab_shows_applied_not_waitlisted(): void
+    {
+        $user = User::factory()->create();
+        $organizer = User::factory()->create();
+
+        $appliedEvent = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'title' => 'my-applied']);
+        $waitlistedEvent = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'title' => 'my-waitlisted']);
+
+        EventAttendance::factory()->for($appliedEvent)->for($user)->create();
+        EventAttendance::factory()->for($waitlistedEvent)->for($user)->waitlisted()->create();
+
+        $response = $this->actingAs($user)->get(route('my.attendances'));
+
+        $response->assertSee('my-applied');
+        $response->assertDontSee('my-waitlisted');
+    }
 }
