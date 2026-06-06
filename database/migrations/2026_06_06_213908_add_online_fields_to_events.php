@@ -19,7 +19,7 @@ return new class extends Migration
     {
         Schema::table('events', function (Blueprint $table): void {
             $table->dropColumn(['online_url', 'online_password']);
-            $table->string('location')->nullable(false)->change();
         });
+        // Note: location は nullable のまま維持（NULL データが存在する場合のロールバック安全性のため）
     }
 };

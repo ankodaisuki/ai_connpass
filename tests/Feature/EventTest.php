@@ -687,6 +687,48 @@ class EventTest extends TestCase
         ])->assertNotFound();
     }
 
+    /** 更新時: オンラインイベントは online_url 必須 */
+    public function test_update_requires_online_url_for_online_event(): void
+    {
+        $user = User::factory()->create();
+        $event = Event::factory()->online()->for($user)->create(['status' => EventStatus::Published]);
+
+        $response = $this->actingAs($user)->put(route('events.update', $event), [
+            'title' => 'テストイベント',
+            'description' => '説明',
+            'category' => 1,
+            'prefecture' => 'オンライン',
+            'location' => null,
+            'event_date' => now()->addDays(5)->format('Y-m-d\TH:i'),
+            'end_date' => now()->addDays(5)->addHours(2)->format('Y-m-d\TH:i'),
+            'capacity' => 30,
+            'status' => EventStatus::Published->value,
+        ]);
+
+        $response->assertSessionHasErrors(['online_url']);
+    }
+
+    /** 更新時: 対面イベントは online_url 不要 */
+    public function test_update_does_not_require_online_url_for_in_person_event(): void
+    {
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user)->create(['status' => EventStatus::Published, 'prefecture' => '東京都']);
+
+        $response = $this->actingAs($user)->put(route('events.update', $event), [
+            'title' => 'テストイベント',
+            'description' => '説明',
+            'category' => 1,
+            'prefecture' => '東京都',
+            'location' => '渋谷会場',
+            'event_date' => now()->addDays(5)->format('Y-m-d\TH:i'),
+            'end_date' => now()->addDays(5)->addHours(2)->format('Y-m-d\TH:i'),
+            'capacity' => 30,
+            'status' => EventStatus::Published->value,
+        ]);
+
+        $response->assertSessionDoesntHaveErrors(['online_url']);
+    }
+
     // ==========================================
     // destroy
     // ==========================================

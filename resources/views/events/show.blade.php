@@ -37,6 +37,17 @@
                         ⚠ 参加者の入室承認機能（待機室・ロビー等）を有効にすることを推奨します。
                     </div>
                 @endif
+                @if ($event->online_url && in_array($event->prefecture, ['オンライン', 'ハイブリッド']))
+                    <div class="rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 px-4 py-3 space-y-1">
+                        <p class="text-xs font-semibold text-blue-700 dark:text-blue-400">オンライン参加情報（主催者確認用）</p>
+                        <p class="text-sm text-blue-700 dark:text-blue-300 break-all">
+                            URL: <a href="{{ $event->online_url }}" target="_blank" rel="noopener noreferrer" class="underline">{{ $event->online_url }}</a>
+                        </p>
+                        @if ($event->online_password)
+                            <p class="text-sm text-blue-700 dark:text-blue-300">パスワード: {{ $event->online_password }}</p>
+                        @endif
+                    </div>
+                @endif
                 <a href="{{ route('events.edit', $event) }}"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-[#3E3E3A] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1a1a18] text-xs font-medium transition-colors">
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
