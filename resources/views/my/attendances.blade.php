@@ -1,6 +1,8 @@
 @php
     use App\Enums\EventCategory;
 
+    $tab ??= 'applied';
+
     $categoryStyles = [
         EventCategory::Frontend->value => ['label' => 'フロントエンド', 'class' => 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300', 'gradient' => 'from-sky-500 to-blue-600'],
         EventCategory::Backend->value => ['label' => 'バックエンド', 'class' => 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300', 'gradient' => 'from-emerald-500 to-green-600'],
@@ -81,10 +83,17 @@
                         </div>
 
                         <div class="shrink-0 text-right">
-                            <p class="text-xs text-slate-400 dark:text-slate-500">申し込み日</p>
-                            <p class="text-xs font-medium text-slate-600 dark:text-slate-400 mt-0.5">
-                                {{ $attendance->applied_at->format('Y/m/d') }}
-                            </p>
+                            @if ($tab === 'waitlist')
+                                <p class="text-xs text-slate-400 dark:text-slate-500">登録日</p>
+                                <p class="text-xs font-medium text-slate-600 dark:text-slate-400 mt-0.5">
+                                    {{ $attendance->waitlisted_at?->format('Y/m/d') ?? '-' }}
+                                </p>
+                            @else
+                                <p class="text-xs text-slate-400 dark:text-slate-500">申し込み日</p>
+                                <p class="text-xs font-medium text-slate-600 dark:text-slate-400 mt-0.5">
+                                    {{ $attendance->applied_at?->format('Y/m/d') ?? '-' }}
+                                </p>
+                            @endif
                             <svg class="h-4 w-4 text-slate-400 group-hover:text-indigo-500 transition-colors mt-2 ml-auto" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                             </svg>
