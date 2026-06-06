@@ -387,32 +387,52 @@ connpass のように、ユーザーが自分の Google カレンダーへイベ
 
 ### 実装内容
 
-- [ ] Task 1: マイグレーション・Enum・Model・Factory 更新
-  - [ ] `waitlisted_at` カラム追加マイグレーション
-  - [ ] `AttendanceStatus::Waitlisted = 2` 追加
-  - [ ] `EventAttendance` に `waitlisted_at` fillable/cast 追加
-  - [ ] `Event` に `waitlistAttendances()` リレーション追加
-  - [ ] `EventAttendanceFactory` に `waitlisted()` ステート追加
+- [x] Task 1: マイグレーション・Enum・Model・Factory 更新
+  - [x] `waitlisted_at` カラム追加マイグレーション
+  - [x] `AttendanceStatus::Waitlisted = 2` 追加
+  - [x] `EventAttendance` に `waitlisted_at` fillable/cast 追加
+  - [x] `Event` に `waitlistAttendances()` リレーション追加
+  - [x] `EventAttendanceFactory` に `waitlisted()` ステート追加
 
-- [ ] Task 2: サービス層 - キャンセル待ち登録
-  - [ ] `apply()` の戻り値を `AttendanceStatus` に変更
-  - [ ] `waitlistApply()` メソッド追加
-  - [ ] コントローラーの flash メッセージ分岐
+- [x] Task 2: サービス層 - キャンセル待ち登録
+  - [x] `apply()` の戻り値を `AttendanceStatus` に変更
+  - [x] `waitlistApply()` メソッド追加
+  - [x] コントローラーの flash メッセージ分岐
 
-- [ ] Task 3: サービス層 - 自動昇格
-  - [ ] `cancel()` を Applied / Waitlisted 両対応に変更
-  - [ ] `promoteFromWaitlist()` メソッド追加
+- [x] Task 3: サービス層 - 自動昇格
+  - [x] `cancel()` を Applied / Waitlisted 両対応に変更
+  - [x] `promoteFromWaitlist()` メソッド追加
 
-- [ ] Task 4: メール送信
-  - [ ] `WaitlistConfirmationMail` クラス + ビュー
-  - [ ] `WaitlistPromotedMail` クラス + ビュー
+- [x] Task 4: メール送信
+  - [x] `WaitlistConfirmationMail` クラス + ビュー
+  - [x] `WaitlistPromotedMail` クラス + ビュー
 
-- [ ] Task 5: Google カレンダー連携（昇格時）テスト追加
+- [x] Task 5: Google カレンダー連携（昇格時）テスト追加
 
-- [ ] Task 6: EventController + UI 更新
-  - [ ] `show()` に `$myWaitlist`・`$myWaitlistPosition`・`$isWaitlistFull` 追加
-  - [ ] `show.blade.php` にキャンセル待ちボタン・バッジ追加
-  - [ ] 主催者セクションにキャンセル待ちタブ追加
+- [x] Task 6: EventController + UI 更新
+  - [x] `show()` に `$myWaitlist`・`$myWaitlistPosition`・`$isWaitlistFull` 追加
+  - [x] `show.blade.php` にキャンセル待ちボタン・バッジ追加
+  - [x] 主催者セクションにキャンセル待ちタブ追加
+
+### マージ後の追加実装
+
+- [x] `/my/attendances` にキャンセル待ちタブ追加（`?tab=waitlist`）
+  - [x] `EventAttendance` に `waitlistedToPublishedEvent` スコープ追加
+  - [x] `MyAttendanceController` に `tab` クエリパラメータ対応
+  - [x] 申込一覧 / キャンセル待ち一覧をタブ切り替えで表示
+  - [x] ページネーション時も `?tab=waitlist` を維持（`withQueryString()`）
+
+- [x] キャンセル・出欠制限の強化（設計仕様: `docs/superpowers/specs/2026-06-06-attendance-restrictions-design.md`）
+  - [x] イベント終了後（`end_date`）は主催者も出欠を記録できない
+  - [x] キャンセルは `end_date` 後のみ不可（Applied・Waitlisted 共通）
+  - [x] 出席済み（`attended_at` あり）の場合も終了前後問わずキャンセル不可
+  - [x] UI: 申込済みユーザーのキャンセルボタンを `end_date` / `attended_at` ベースで制御
+  - [x] UI: キャンセル待ちユーザーのキャンセルボタンを終了前は表示、終了後は非表示
+
+- [x] イベント削除通知メール（設計仕様: `docs/superpowers/specs/2026-06-06-event-cancelled-notification-design.md`）
+  - [x] `EventCancelledMail` クラス + ビュー（件名「【イベント中止】{タイトル}」）
+  - [x] `EventController::destroy()` で Applied・Waitlisted 全参加者に送信
+  - [x] 送信失敗は `Log::warning` で記録し処理継続
 
 ---
 
