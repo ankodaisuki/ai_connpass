@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\AttendanceMode;
 use App\Enums\AttendanceStatus;
 use App\Exceptions\AttendanceException;
 use App\Mail\WaitlistConfirmationMail;
@@ -22,7 +23,7 @@ class EventAttendanceService
      *
      * @throws AttendanceException
      */
-    public function apply(Event $event, User $user): AttendanceStatus
+    public function apply(Event $event, User $user, AttendanceMode $attendanceMode): AttendanceStatus
     {
         if ($event->end_date->isPast()) {
             throw new AttendanceException('このイベントはすでに終了しています。');
@@ -34,7 +35,7 @@ class EventAttendanceService
 
         $waitlistPosition = null;
 
-        $status = DB::transaction(function () use ($event, $user, &$waitlistPosition) {
+        $status = DB::transaction(function () use ($event, $user, $attendanceMode, &$waitlistPosition) {
             // イベント行をロックして同時申し込みを直列化する
             $event = Event::where('id', $event->id)->lockForUpdate()->first();
 
@@ -57,7 +58,7 @@ class EventAttendanceService
                 ->count();
 
             if ($appliedCount >= $event->capacity) {
-                $waitlistPosition = $this->waitlistApply($event, $user, $existing);
+                $waitlistPosition = $this->waitlistApply($event, $user, $existing, $attendanceMode);
 
                 return AttendanceStatus::Waitlisted;
             }
@@ -68,6 +69,7 @@ class EventAttendanceService
                     'applied_at' => now(),
                     'cancelled_at' => null,
                     'waitlisted_at' => null,
+                    'attendance_mode' => $attendanceMode,
                 ]);
                 $attendance = $existing;
             } else {
@@ -76,6 +78,7 @@ class EventAttendanceService
                     'user_id' => $user->id,
                     'status' => AttendanceStatus::Applied,
                     'applied_at' => now(),
+                    'attendance_mode' => $attendanceMode,
                 ]);
             }
 
@@ -104,7 +107,7 @@ class EventAttendanceService
      *
      * @throws AttendanceException
      */
-    private function waitlistApply(Event $event, User $user, ?EventAttendance $existing): int
+    private function waitlistApply(Event $event, User $user, ?EventAttendance $existing, AttendanceMode $attendanceMode): int
     {
         $waitlistedCount = EventAttendance::query()
             ->where('event_id', $event->id)
@@ -121,6 +124,7 @@ class EventAttendanceService
                 'waitlisted_at' => now(),
                 'applied_at' => null,
                 'cancelled_at' => null,
+                'attendance_mode' => $attendanceMode,
             ]);
             $attendance = $existing;
         } else {
@@ -129,6 +133,7 @@ class EventAttendanceService
                 'user_id' => $user->id,
                 'status' => AttendanceStatus::Waitlisted,
                 'waitlisted_at' => now(),
+                'attendance_mode' => $attendanceMode,
             ]);
         }
 

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\AttendanceMode;
 use App\Enums\AttendanceStatus;
 use App\Enums\EventStatus;
 use App\Mail\WaitlistConfirmationMail;
@@ -793,6 +794,92 @@ class EventAttendanceTest extends TestCase
     // ==========================================
     // waitlist - Google カレンダー連携
     // ==========================================
+
+    /** ハイブリッドイベントで attendance_mode を指定して申し込めば attendance_mode が保存される */
+    public function test_store_saves_attendance_mode_for_hybrid_event(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->hybrid()->for($owner)->create([
+            'status' => EventStatus::Published,
+        ]);
+        $applicant = User::factory()->create();
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->post(route('events.attendances.store', $event), [
+                'attendance_mode' => 'online',
+            ])
+            ->assertRedirect(route('events.show', $event))
+            ->assertSessionHasNoErrors();
+
+        $attendance = EventAttendance::query()
+            ->where('event_id', $event->id)
+            ->where('user_id', $applicant->id)
+            ->first();
+
+        $this->assertNotNull($attendance);
+        $this->assertSame(AttendanceMode::Online, $attendance->attendance_mode);
+    }
+
+    /** ハイブリッドイベントで attendance_mode なしの申し込みは失敗する */
+    public function test_store_fails_without_attendance_mode_for_hybrid_event(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->hybrid()->for($owner)->create([
+            'status' => EventStatus::Published,
+        ]);
+        $applicant = User::factory()->create();
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->post(route('events.attendances.store', $event))
+            ->assertSessionHasErrors(['attendance_mode']);
+    }
+
+    /** 対面イベントの申し込みは attendance_mode が in_person に自動セットされる */
+    public function test_store_auto_sets_in_person_mode_for_in_person_event(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'prefecture' => '東京都',
+        ]);
+        $applicant = User::factory()->create();
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->post(route('events.attendances.store', $event))
+            ->assertSessionHasNoErrors();
+
+        $attendance = EventAttendance::query()
+            ->where('event_id', $event->id)
+            ->where('user_id', $applicant->id)
+            ->first();
+
+        $this->assertSame(AttendanceMode::InPerson, $attendance->attendance_mode);
+    }
+
+    /** オンラインイベントの申し込みは attendance_mode が online に自動セットされる */
+    public function test_store_auto_sets_online_mode_for_online_event(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->online()->for($owner)->create([
+            'status' => EventStatus::Published,
+        ]);
+        $applicant = User::factory()->create();
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->post(route('events.attendances.store', $event))
+            ->assertSessionHasNoErrors();
+
+        $attendance = EventAttendance::query()
+            ->where('event_id', $event->id)
+            ->where('user_id', $applicant->id)
+            ->first();
+
+        $this->assertSame(AttendanceMode::Online, $attendance->attendance_mode);
+    }
 
     /** 昇格時に Google カレンダーへ予定が追加される */
     public function test_promotion_adds_event_to_google_calendar(): void
