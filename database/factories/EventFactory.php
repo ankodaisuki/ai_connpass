@@ -69,26 +69,6 @@ class EventFactory extends Factory
     }
 
     /**
-     * 下書き状態のイベントを生成
-     */
-    public function draft(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'status' => EventStatus::Draft,
-        ]);
-    }
-
-    /**
-     * 非公開状態のイベントを生成
-     */
-    public function private(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'status' => EventStatus::Private,
-        ]);
-    }
-
-    /**
      * オンラインイベントを生成
      */
     public function online(): static
@@ -110,6 +90,26 @@ class EventFactory extends Factory
             'prefecture' => 'ハイブリッド',
             'online_url' => 'https://zoom.us/j/987654321',
             'online_password' => null,
+        ]);
+    }
+
+    /**
+     * 下書き状態のイベントを生成
+     */
+    public function draft(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => EventStatus::Draft,
+        ]);
+    }
+
+    /**
+     * 非公開状態のイベントを生成
+     */
+    public function private(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => EventStatus::Private,
         ]);
     }
 }

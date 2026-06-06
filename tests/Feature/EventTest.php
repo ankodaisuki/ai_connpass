@@ -499,6 +499,83 @@ class EventTest extends TestCase
         ])->assertSessionHasErrors(['category']);
     }
 
+    /** オンラインイベントは online_url 必須 */
+    public function test_store_requires_online_url_for_online_event(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('events.store'), [
+            'title' => 'テストイベント',
+            'description' => '説明',
+            'category' => 1,
+            'prefecture' => 'オンライン',
+            'location' => null,
+            'event_date' => now()->addDays(5)->format('Y-m-d\TH:i'),
+            'end_date' => now()->addDays(5)->addHours(2)->format('Y-m-d\TH:i'),
+            'capacity' => 30,
+        ]);
+
+        $response->assertSessionHasErrors(['online_url']);
+    }
+
+    /** ハイブリッドイベントは online_url 必須 */
+    public function test_store_requires_online_url_for_hybrid_event(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('events.store'), [
+            'title' => 'テストイベント',
+            'description' => '説明',
+            'category' => 1,
+            'prefecture' => 'ハイブリッド',
+            'location' => '渋谷会場',
+            'event_date' => now()->addDays(5)->format('Y-m-d\TH:i'),
+            'end_date' => now()->addDays(5)->addHours(2)->format('Y-m-d\TH:i'),
+            'capacity' => 30,
+        ]);
+
+        $response->assertSessionHasErrors(['online_url']);
+    }
+
+    /** 対面イベントは online_url 不要 */
+    public function test_store_does_not_require_online_url_for_in_person_event(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('events.store'), [
+            'title' => 'テストイベント',
+            'description' => '説明',
+            'category' => 1,
+            'prefecture' => '東京都',
+            'location' => '渋谷会場',
+            'event_date' => now()->addDays(5)->format('Y-m-d\TH:i'),
+            'end_date' => now()->addDays(5)->addHours(2)->format('Y-m-d\TH:i'),
+            'capacity' => 30,
+        ]);
+
+        $response->assertSessionDoesntHaveErrors(['online_url']);
+    }
+
+    /** オンラインイベントは location 不要 */
+    public function test_store_does_not_require_location_for_online_event(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('events.store'), [
+            'title' => 'テストイベント',
+            'description' => '説明',
+            'category' => 1,
+            'prefecture' => 'オンライン',
+            'location' => null,
+            'online_url' => 'https://zoom.us/j/123456789',
+            'event_date' => now()->addDays(5)->format('Y-m-d\TH:i'),
+            'end_date' => now()->addDays(5)->addHours(2)->format('Y-m-d\TH:i'),
+            'capacity' => 30,
+        ]);
+
+        $response->assertSessionDoesntHaveErrors(['location']);
+    }
+
     // ==========================================
     // edit / update
     // ==========================================

@@ -2,6 +2,7 @@
 
 namespace App\Enums;
 
+/** 参加形態（オンライン／対面） */
 enum AttendanceMode: string
 {
     case Online = 'online';
