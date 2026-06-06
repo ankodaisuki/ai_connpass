@@ -231,19 +231,8 @@
                                 @endif
                             </div>
                         @elseif ($myWaitlist !== null)
-                            <div class="space-y-2">
-                                <div class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-sm font-semibold">
-                                    キャンセル待ち中（{{ $myWaitlistPosition }}番目）
-                                </div>
-                                <form method="POST" action="{{ route('events.attendances.destroy', $event) }}"
-                                    onsubmit="return confirm('キャンセル待ちを取り消してもよいですか？')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit"
-                                        class="w-full inline-flex items-center justify-center px-4 py-2 rounded-xl border border-slate-300 dark:border-[#3E3E3A] text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800 text-sm transition">
-                                        キャンセルする
-                                    </button>
-                                </form>
+                            <div class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-sm font-semibold">
+                                キャンセル待ち中（{{ $myWaitlistPosition }}番目）
                             </div>
                         @elseif ($hasEnded)
                             <button disabled class="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 text-sm font-semibold cursor-not-allowed">
@@ -315,11 +304,15 @@
                 </div>
 
                 @if ($activeTab === 'attendees')
-                    @unless ($hasStarted)
+                    @if (! $hasStarted)
                         <p class="mb-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
                             出欠の記録はイベント開始時刻（{{ $event->event_date->format('Y/m/d H:i') }}）以降に可能になります。
                         </p>
-                    @endunless
+                    @elseif ($hasEnded)
+                        <p class="mb-4 rounded-xl bg-slate-50 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-700 px-4 py-3 text-sm text-slate-500 dark:text-slate-400">
+                            イベントが終了したため出欠を記録できません。
+                        </p>
+                    @endif
 
                     <div class="space-y-2">
                         @forelse($event->attendances()->where('status', \App\Enums\AttendanceStatus::Applied)->with('user')->get() as $attendance)
@@ -335,8 +328,8 @@
                                         <input type="hidden" name="attended_at" value="{{ now()->format('Y-m-d H:i:s') }}">
                                         <button
                                             type="submit"
-                                            @disabled(! $hasStarted)
-                                            class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {{ ! $hasStarted ? 'opacity-50 cursor-not-allowed ' : '' }}{{ $attendance->attended_at ? 'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-600 dark:hover:bg-emerald-700' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600' }}"
+                                            @disabled(! $hasStarted || $hasEnded)
+                                            class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {{ (! $hasStarted || $hasEnded) ? 'opacity-50 cursor-not-allowed ' : '' }}{{ $attendance->attended_at ? 'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-600 dark:hover:bg-emerald-700' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600' }}"
                                         >
                                             {{ $attendance->attended_at ? '✓ 参加' : '参加' }}
                                         </button>
@@ -347,8 +340,8 @@
                                         <input type="hidden" name="attended_at" value="null">
                                         <button
                                             type="submit"
-                                            @disabled(! $hasStarted)
-                                            class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {{ ! $hasStarted ? 'opacity-50 cursor-not-allowed ' : '' }}{{ ! $attendance->attended_at ? 'bg-slate-500 dark:bg-slate-600 text-white hover:bg-slate-600 dark:hover:bg-slate-700' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600' }}"
+                                            @disabled(! $hasStarted || $hasEnded)
+                                            class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {{ (! $hasStarted || $hasEnded) ? 'opacity-50 cursor-not-allowed ' : '' }}{{ ! $attendance->attended_at ? 'bg-slate-500 dark:bg-slate-600 text-white hover:bg-slate-600 dark:hover:bg-slate-700' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600' }}"
                                         >
                                             {{ ! $attendance->attended_at ? '✓ 未参加' : '未参加' }}
                                         </button>
