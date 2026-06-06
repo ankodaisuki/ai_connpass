@@ -554,6 +554,12 @@ class EventTest extends TestCase
         ]);
 
         $response->assertSessionDoesntHaveErrors(['online_url']);
+        $response->assertRedirect();
+        $this->assertDatabaseHas('events', [
+            'title' => 'テストイベント',
+            'prefecture' => '東京都',
+            'location' => '渋谷会場',
+        ]);
     }
 
     /** オンラインイベントは location 不要 */
@@ -574,6 +580,13 @@ class EventTest extends TestCase
         ]);
 
         $response->assertSessionDoesntHaveErrors(['location']);
+        $response->assertRedirect();
+        $this->assertDatabaseHas('events', [
+            'title' => 'テストイベント',
+            'prefecture' => 'オンライン',
+            'location' => null,
+            'online_url' => 'https://zoom.us/j/123456789',
+        ]);
     }
 
     // ==========================================

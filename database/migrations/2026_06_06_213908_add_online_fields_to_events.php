@@ -9,6 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('events', function (Blueprint $table): void {
+            $table->string('location')->nullable()->change();
             $table->string('online_url', 2048)->nullable()->after('location');
             $table->string('online_password')->nullable()->after('online_url');
         });
@@ -18,6 +19,7 @@ return new class extends Migration
     {
         Schema::table('events', function (Blueprint $table): void {
             $table->dropColumn(['online_url', 'online_password']);
+            $table->string('location')->nullable(false)->change();
         });
     }
 };
