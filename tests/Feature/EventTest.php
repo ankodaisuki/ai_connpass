@@ -4,9 +4,12 @@ namespace Tests\Feature;
 
 use App\Enums\EventCategory;
 use App\Enums\EventStatus;
+use App\Mail\EventCancelledMail;
 use App\Models\Event;
+use App\Models\EventAttendance;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class EventTest extends TestCase
@@ -627,5 +630,69 @@ class EventTest extends TestCase
         $event = Event::factory()->for($owner)->create();
 
         $this->actingAs($other)->delete(route('events.destroy', $event))->assertForbidden();
+    }
+
+    /** 削除時に Applied 参加者へ中止メールが送信される */
+    public function test_destroy_sends_cancellation_email_to_applied_attendees(): void
+    {
+        Mail::fake();
+
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create(['status' => EventStatus::Published]);
+        $attendee = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($attendee)->create();
+
+        $this->actingAs($owner)->delete(route('events.destroy', $event));
+
+        Mail::assertSent(EventCancelledMail::class, function (EventCancelledMail $mail) use ($attendee, $event) {
+            return $mail->hasTo($attendee->email)
+                && $mail->event->id === $event->id;
+        });
+    }
+
+    /** 削除時に Waitlisted 参加者へも中止メールが送信される */
+    public function test_destroy_sends_cancellation_email_to_waitlisted_attendees(): void
+    {
+        Mail::fake();
+
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create(['status' => EventStatus::Published]);
+        $waitlisted = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($waitlisted)->waitlisted()->create();
+
+        $this->actingAs($owner)->delete(route('events.destroy', $event));
+
+        Mail::assertSent(EventCancelledMail::class, function (EventCancelledMail $mail) use ($waitlisted, $event) {
+            return $mail->hasTo($waitlisted->email)
+                && $mail->event->id === $event->id;
+        });
+    }
+
+    /** 参加者がいない場合はメールを送信しない */
+    public function test_destroy_sends_no_email_when_no_attendees(): void
+    {
+        Mail::fake();
+
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create(['status' => EventStatus::Published]);
+
+        $this->actingAs($owner)->delete(route('events.destroy', $event));
+
+        Mail::assertNothingSent();
+    }
+
+    /** キャンセル済み（Cancelled）参加者へはメールを送信しない */
+    public function test_destroy_does_not_send_email_to_cancelled_attendees(): void
+    {
+        Mail::fake();
+
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create(['status' => EventStatus::Published]);
+        $cancelled = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($cancelled)->cancelled()->create();
+
+        $this->actingAs($owner)->delete(route('events.destroy', $event));
+
+        Mail::assertNothingSent();
     }
 }

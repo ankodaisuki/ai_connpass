@@ -8,6 +8,7 @@ use App\Enums\EventStatus;
 use App\Http\Requests\Event\IndexEventRequest;
 use App\Http\Requests\Event\StoreEventRequest;
 use App\Http\Requests\Event\UpdateEventRequest;
+use App\Mail\EventCancelledMail;
 use App\Models\Event;
 use App\Models\EventAttendance;
 use App\Models\User;
@@ -15,6 +16,8 @@ use App\Services\EventService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Symfony\Component\HttpFoundation\Response;
 
 class EventController extends Controller
@@ -101,8 +104,26 @@ class EventController extends Controller
     {
         $this->authorize('delete', $event);
 
+        $attendees = $event->attendances()
+            ->with('user')
+            ->whereIn('status', [AttendanceStatus::Applied, AttendanceStatus::Waitlisted])
+            ->get()
+            ->map(fn (EventAttendance $a) => $a->user);
+
         $event->update(['status' => EventStatus::Private]);
         $event->delete();
+
+        foreach ($attendees as $attendee) {
+            try {
+                Mail::to($attendee->email)->send(new EventCancelledMail($event));
+            } catch (\Throwable $e) {
+                Log::warning('イベント中止通知メール送信に失敗', [
+                    'user_id' => $attendee->id,
+                    'event_id' => $event->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         return redirect()->route('events.index')->with('success', 'イベントを削除しました。');
     }
