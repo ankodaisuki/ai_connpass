@@ -19,13 +19,13 @@ class MyAttendanceController extends Controller
                 ->waitlistedToPublishedEvent()
                 ->with('event.user')
                 ->orderBy('waitlisted_at', 'asc')
-                ->paginate(15);
+                ->paginate(15)->withQueryString();
         } else {
             $attendances = $user->eventAttendances()
                 ->appliedToPublishedEvent()
                 ->with('event.user')
                 ->orderBy('applied_at', 'asc')
-                ->paginate(15);
+                ->paginate(15)->withQueryString();
         }
 
         return view('my.attendances', compact('attendances', 'tab'));
