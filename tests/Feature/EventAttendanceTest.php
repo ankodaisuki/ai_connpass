@@ -269,17 +269,18 @@ class EventAttendanceTest extends TestCase
             ->assertSessionHasErrors(['attendance']);
     }
 
-    /** 出席済み（attended_at あり）の場合は開始後にキャンセルできない */
+    /** 出席済み（attended_at あり）の場合はイベント終了前でもキャンセルできない */
     public function test_destroy_fails_when_attended_after_event_start(): void
     {
         $owner = User::factory()->create();
         $event = Event::factory()->for($owner)->create([
             'status' => EventStatus::Published,
-            'event_date' => now()->subDays(1),
+            'event_date' => now()->subHour(),
+            'end_date' => now()->addHour(),
         ]);
         $applicant = User::factory()->create();
         EventAttendance::factory()->for($event)->for($applicant)->create([
-            'attended_at' => now()->subDays(1),
+            'attended_at' => now()->subMinutes(30),
         ]);
 
         $this->actingAs($applicant)
@@ -289,12 +290,14 @@ class EventAttendanceTest extends TestCase
             ->assertSessionHasErrors(['attendance']);
     }
 
-    /** キャンセル待ちユーザーはキャンセルできない */
-    public function test_destroy_fails_for_waitlisted_user(): void
+    /** イベント終了後はキャンセル待ちユーザーもキャンセルできない */
+    public function test_destroy_fails_for_waitlisted_user_after_event_ends(): void
     {
         $owner = User::factory()->create();
         $event = Event::factory()->for($owner)->create([
             'status' => EventStatus::Published,
+            'event_date' => now()->subHours(3),
+            'end_date' => now()->subHour(),
         ]);
         $applicant = User::factory()->create();
         $attendance = EventAttendance::factory()->for($event)->for($applicant)->waitlisted()->create();
@@ -306,6 +309,27 @@ class EventAttendanceTest extends TestCase
             ->assertSessionHasErrors(['attendance']);
 
         $this->assertSame(AttendanceStatus::Waitlisted, $attendance->fresh()->status);
+    }
+
+    /** イベント終了前はキャンセル待ちユーザーもキャンセルできる */
+    public function test_destroy_succeeds_for_waitlisted_user_before_event_ends(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'event_date' => now()->addDays(5),
+            'end_date' => now()->addDays(5)->addHours(2),
+        ]);
+        $applicant = User::factory()->create();
+        $attendance = EventAttendance::factory()->for($event)->for($applicant)->waitlisted()->create();
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->delete(route('events.attendances.destroy', $event))
+            ->assertRedirect(route('events.show', $event))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(AttendanceStatus::Cancelled, $attendance->fresh()->status);
     }
 
     // ==========================================

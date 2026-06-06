@@ -213,10 +213,15 @@
                                     </svg>
                                     参加申し込み済み
                                 </div>
-                                @if ($hasStarted)
+                                @if ($hasEnded)
                                     <button disabled
                                         class="w-full inline-flex items-center justify-center px-4 py-2 rounded-xl border border-slate-200 dark:border-[#3E3E3A] text-slate-400 dark:text-slate-600 text-sm cursor-not-allowed">
-                                        {{ $myAttendance->attended_at !== null ? 'キャンセル不可（出席済み）' : 'キャンセル不可（開催開始済み）' }}
+                                        キャンセル不可（終了済み）
+                                    </button>
+                                @elseif ($myAttendance->attended_at !== null)
+                                    <button disabled
+                                        class="w-full inline-flex items-center justify-center px-4 py-2 rounded-xl border border-slate-200 dark:border-[#3E3E3A] text-slate-400 dark:text-slate-600 text-sm cursor-not-allowed">
+                                        キャンセル不可（出席済み）
                                     </button>
                                 @else
                                     <form method="POST" action="{{ route('events.attendances.destroy', $event) }}"
@@ -231,8 +236,21 @@
                                 @endif
                             </div>
                         @elseif ($myWaitlist !== null)
-                            <div class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-sm font-semibold">
-                                キャンセル待ち中（{{ $myWaitlistPosition }}番目）
+                            <div class="space-y-2">
+                                <div class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-sm font-semibold">
+                                    キャンセル待ち中（{{ $myWaitlistPosition }}番目）
+                                </div>
+                                @if (! $hasEnded)
+                                    <form method="POST" action="{{ route('events.attendances.destroy', $event) }}"
+                                        onsubmit="return confirm('キャンセル待ちを取り消してもよいですか？')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit"
+                                            class="w-full inline-flex items-center justify-center px-4 py-2 rounded-xl border border-slate-300 dark:border-[#3E3E3A] text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800 text-sm transition">
+                                            キャンセルする
+                                        </button>
+                                    </form>
+                                @endif
                             </div>
                         @elseif ($hasEnded)
                             <button disabled class="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 text-sm font-semibold cursor-not-allowed">
