@@ -19,7 +19,25 @@
     <div class="max-w-3xl mx-auto">
         <div class="mb-6">
             <h1 class="text-2xl font-bold tracking-tight">申し込み一覧</h1>
-            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">参加申し込み済みのイベント一覧です</p>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">申し込み済み・キャンセル待ちのイベント一覧です</p>
+        </div>
+
+        {{-- タブナビゲーション --}}
+        <div class="flex gap-1 mb-6 border-b border-slate-200 dark:border-[#3E3E3A]">
+            <a href="{{ route('my.attendances') }}"
+                class="px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors
+                    {{ $tab === 'applied'
+                        ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                        : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300' }}">
+                申込一覧
+            </a>
+            <a href="{{ route('my.attendances', ['tab' => 'waitlist']) }}"
+                class="px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors
+                    {{ $tab === 'waitlist'
+                        ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                        : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300' }}">
+                キャンセル待ち
+            </a>
         </div>
 
         @if ($attendances->isEmpty())
@@ -29,8 +47,13 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" />
                     </svg>
                 </div>
-                <p class="text-base font-medium text-slate-700 dark:text-slate-300">申し込み済みのイベントはありません</p>
-                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">気になるイベントに参加してみましょう。</p>
+                @if ($tab === 'waitlist')
+                    <p class="text-base font-medium text-slate-700 dark:text-slate-300">キャンセル待ち中のイベントはありません</p>
+                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">満員のイベントに申し込むとキャンセル待ちに登録されます。</p>
+                @else
+                    <p class="text-base font-medium text-slate-700 dark:text-slate-300">申し込み済みのイベントはありません</p>
+                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">気になるイベントに参加してみましょう。</p>
+                @endif
                 <a href="{{ route('events.index') }}"
                     class="mt-5 inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium shadow-sm transition-colors">
                     イベントを探す
