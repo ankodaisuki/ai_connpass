@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AttendanceMode;
 use App\Enums\AttendanceStatus;
 use App\Enums\EventStatus;
 use Database\Factories\EventAttendanceFactory;
@@ -22,6 +23,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'attended_at',
     'waitlisted_at',
     'google_calendar_event_id',
+    'attendance_mode',
 ])]
 class EventAttendance extends Model
 {
@@ -41,6 +43,7 @@ class EventAttendance extends Model
             'attended_at' => 'datetime',
             'waitlisted_at' => 'datetime',
             'status' => AttendanceStatus::class,
+            'attendance_mode' => AttendanceMode::class,
         ];
     }
 

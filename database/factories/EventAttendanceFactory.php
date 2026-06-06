@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\AttendanceMode;
 use App\Enums\AttendanceStatus;
 use App\Models\Event;
 use App\Models\EventAttendance;
@@ -26,6 +27,7 @@ class EventAttendanceFactory extends Factory
             'status' => AttendanceStatus::Applied,
             'applied_at' => now(),
             'cancelled_at' => null,
+            'attendance_mode' => AttendanceMode::InPerson,
         ];
     }
 
@@ -59,6 +61,7 @@ class EventAttendanceFactory extends Factory
             'status' => AttendanceStatus::Waitlisted,
             'waitlisted_at' => now(),
             'applied_at' => null,
+            'attendance_mode' => AttendanceMode::InPerson,
         ]);
     }
 }

@@ -87,4 +87,29 @@ class EventFactory extends Factory
             'status' => EventStatus::Private,
         ]);
     }
+
+    /**
+     * オンラインイベントを生成
+     */
+    public function online(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'prefecture' => 'オンライン',
+            'location' => null,
+            'online_url' => 'https://zoom.us/j/123456789',
+            'online_password' => null,
+        ]);
+    }
+
+    /**
+     * ハイブリッドイベントを生成
+     */
+    public function hybrid(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'prefecture' => 'ハイブリッド',
+            'online_url' => 'https://zoom.us/j/987654321',
+            'online_password' => null,
+        ]);
+    }
 }
