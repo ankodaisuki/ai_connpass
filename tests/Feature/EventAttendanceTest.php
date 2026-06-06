@@ -289,6 +289,23 @@ class EventAttendanceTest extends TestCase
             ->assertSessionHasErrors(['attendance']);
     }
 
+    /** キャンセル待ちユーザーはキャンセルできない */
+    public function test_destroy_fails_for_waitlisted_user(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner)->create([
+            'status' => EventStatus::Published,
+        ]);
+        $applicant = User::factory()->create();
+        EventAttendance::factory()->for($event)->for($applicant)->waitlisted()->create();
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->delete(route('events.attendances.destroy', $event))
+            ->assertRedirect(route('events.show', $event))
+            ->assertSessionHasErrors(['attendance']);
+    }
+
     // ==========================================
     // update - 出欠管理（UC5）
     // ==========================================

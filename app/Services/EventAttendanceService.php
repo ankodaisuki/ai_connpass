@@ -160,6 +160,10 @@ class EventAttendanceService
                 throw new AttendanceException('申し込みが見つかりません。');
             }
 
+            if ($attendance->status === AttendanceStatus::Waitlisted) {
+                throw new AttendanceException('キャンセル待ちの申し込みはキャンセルできません。');
+            }
+
             $wasApplied = $attendance->status === AttendanceStatus::Applied;
 
             if ($wasApplied) {
