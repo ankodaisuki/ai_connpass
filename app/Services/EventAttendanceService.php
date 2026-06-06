@@ -140,7 +140,7 @@ class EventAttendanceService
     }
 
     /**
-     * イベント参加のキャンセル（Applied / Waitlisted どちらも対応）
+     * イベント参加のキャンセル（Applied のみ。Waitlisted はキャンセル不可）
      *
      * @throws AttendanceException
      */
@@ -164,16 +164,12 @@ class EventAttendanceService
                 throw new AttendanceException('キャンセル待ちの申し込みはキャンセルできません。');
             }
 
-            $wasApplied = $attendance->status === AttendanceStatus::Applied;
+            if ($event->event_date->isPast() && $attendance->attended_at !== null) {
+                throw new AttendanceException('出席済みのためキャンセルできません。');
+            }
 
-            if ($wasApplied) {
-                if ($event->event_date->isPast() && $attendance->attended_at !== null) {
-                    throw new AttendanceException('出席済みのためキャンセルできません。');
-                }
-
-                if ($event->event_date->isPast()) {
-                    throw new AttendanceException('このイベントはすでに開始しています。');
-                }
+            if ($event->event_date->isPast()) {
+                throw new AttendanceException('このイベントはすでに開始しています。');
             }
 
             $attendance->update([
@@ -181,10 +177,8 @@ class EventAttendanceService
                 'cancelled_at' => now(),
             ]);
 
-            if ($wasApplied) {
-                $this->syncCalendarOnCancel($user, $attendance);
-                $promotedUser = $this->promoteFromWaitlist($event);
-            }
+            $this->syncCalendarOnCancel($user, $attendance);
+            $promotedUser = $this->promoteFromWaitlist($event);
         });
 
         if ($promotedUser !== null) {
