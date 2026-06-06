@@ -881,6 +881,62 @@ class EventAttendanceTest extends TestCase
         $this->assertSame(AttendanceMode::Online, $attendance->attendance_mode);
     }
 
+    /** ハイブリッドイベントで in_person mode での申し込みが attendance_mode に保存される */
+    public function test_store_saves_in_person_mode_for_hybrid_event(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->hybrid()->for($owner)->create([
+            'status' => EventStatus::Published,
+        ]);
+        $applicant = User::factory()->create();
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->post(route('events.attendances.store', $event), [
+                'attendance_mode' => 'in_person',
+            ])
+            ->assertRedirect(route('events.show', $event))
+            ->assertSessionHasNoErrors();
+
+        $attendance = EventAttendance::query()
+            ->where('event_id', $event->id)
+            ->where('user_id', $applicant->id)
+            ->first();
+
+        $this->assertNotNull($attendance);
+        $this->assertSame(AttendanceMode::InPerson, $attendance->attendance_mode);
+    }
+
+    /** ハイブリッドイベントのキャンセル待ち申し込みに attendance_mode が保存される */
+    public function test_store_saves_attendance_mode_for_waitlisted_hybrid_event(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->hybrid()->for($owner)->create([
+            'status' => EventStatus::Published,
+            'capacity' => 1,
+        ]);
+        EventAttendance::factory()->for($event)->for(User::factory()->create())->create();
+
+        $applicant = User::factory()->create();
+
+        $this->actingAs($applicant)
+            ->from(route('events.show', $event))
+            ->post(route('events.attendances.store', $event), [
+                'attendance_mode' => 'online',
+            ])
+            ->assertRedirect(route('events.show', $event))
+            ->assertSessionHasNoErrors();
+
+        $attendance = EventAttendance::query()
+            ->where('event_id', $event->id)
+            ->where('user_id', $applicant->id)
+            ->first();
+
+        $this->assertNotNull($attendance);
+        $this->assertSame(AttendanceStatus::Waitlisted, $attendance->status);
+        $this->assertSame(AttendanceMode::Online, $attendance->attendance_mode);
+    }
+
     /** 昇格時に Google カレンダーへ予定が追加される */
     public function test_promotion_adds_event_to_google_calendar(): void
     {
