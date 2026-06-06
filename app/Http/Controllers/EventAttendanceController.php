@@ -54,6 +54,10 @@ class EventAttendanceController extends Controller
             abort(404);
         }
 
+        if ($event->end_date->isPast()) {
+            return back()->withErrors(['attendance' => 'イベントが終了しているため出欠を記録できません。']);
+        }
+
         if (! $event->event_date->isPast()) {
             return back()->withErrors(['attendance' => 'イベント開始前は出欠を記録できません。']);
         }

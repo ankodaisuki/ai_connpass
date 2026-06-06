@@ -389,6 +389,33 @@ class EventAttendanceTest extends TestCase
         $this->assertNull($attendance->refresh()->attended_at);
     }
 
+    /** イベント終了後は主催者でも出欠を記録できない */
+    public function test_organizer_cannot_mark_attendance_after_event_ends(): void
+    {
+        $organizer = User::factory()->create();
+        $attendee = User::factory()->create();
+        $event = Event::factory()->create([
+            'user_id' => $organizer->id,
+            'event_date' => now()->subHours(3),
+            'end_date' => now()->subHour(),
+        ]);
+        $attendance = EventAttendance::factory()->create([
+            'event_id' => $event->id,
+            'user_id' => $attendee->id,
+            'attended_at' => null,
+        ]);
+
+        $response = $this->actingAs($organizer)
+            ->from(route('events.show', $event))
+            ->patch(route('events.attendances.update', [$event, $attendance]), [
+                'attended_at' => now()->format('Y-m-d H:i:s'),
+            ]);
+
+        $response->assertRedirect(route('events.show', $event));
+        $response->assertSessionHasErrors(['attendance']);
+        $this->assertNull($attendance->refresh()->attended_at);
+    }
+
     /** 主催者はイベント詳細に出欠管理セクションが表示される */
     public function test_organizer_sees_attendance_section_on_event_detail(): void
     {
