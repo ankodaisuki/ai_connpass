@@ -174,9 +174,11 @@
                     @if (in_array($event->prefecture, ['オンライン', 'ハイブリッド']) && $myAttendance !== null)
                         <div class="mt-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 px-4 py-3 space-y-1">
                             <p class="text-xs font-semibold text-blue-700 dark:text-blue-400">オンライン参加情報</p>
-                            <p class="text-sm text-blue-700 dark:text-blue-300 break-all">
-                                URL: <a href="{{ $event->online_url }}" target="_blank" rel="noopener noreferrer" class="underline">{{ $event->online_url }}</a>
-                            </p>
+                            @if ($event->online_url)
+                                <p class="text-sm text-blue-700 dark:text-blue-300 break-all">
+                                    URL: <a href="{{ $event->online_url }}" target="_blank" rel="noopener noreferrer" class="underline">{{ $event->online_url }}</a>
+                                </p>
+                            @endif
                             @if ($event->online_password)
                                 <p class="text-sm text-blue-700 dark:text-blue-300">パスワード: {{ $event->online_password }}</p>
                             @endif
