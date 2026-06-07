@@ -83,7 +83,7 @@
                         class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-[#3E3E3A] bg-white dark:bg-[#0a0a0a] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition @error('prefecture') border-red-500 focus:ring-red-500 @enderror"
                         required
                     >
-                        @foreach (['北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県','茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県','新潟県','富山県','石川県','福井県','山梨県','長野県','岐阜県','静岡県','愛知県','三重県','滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県','鳥取県','島根県','岡山県','広島県','山口県','徳島県','香川県','愛媛県','高知県','福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県','オンライン'] as $pref)
+                        @foreach (['北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県','茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県','新潟県','富山県','石川県','福井県','山梨県','長野県','岐阜県','静岡県','愛知県','三重県','滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県','鳥取県','島根県','岡山県','広島県','山口県','徳島県','香川県','愛媛県','高知県','福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県','オンライン','ハイブリッド'] as $pref)
                             <option value="{{ $pref }}" {{ old('prefecture', $event->prefecture) === $pref ? 'selected' : '' }}>{{ $pref }}</option>
                         @endforeach
                     </select>
@@ -93,7 +93,7 @@
                 </div>
 
                 <!-- 会場 -->
-                <div>
+                <div id="location-field">
                     <label for="location" class="block text-sm font-medium mb-1.5 text-slate-700 dark:text-slate-300">
                         会場 <span class="text-red-500">*</span>
                     </label>
@@ -108,6 +108,42 @@
                     @error('location')
                         <p class="text-red-500 text-sm mt-1.5">{{ $message }}</p>
                     @enderror
+                </div>
+
+                <!-- オンラインURL・パスワード -->
+                <div id="online-fields" class="space-y-4" style="display: none;">
+                    <div>
+                        <label for="online_url" class="block text-sm font-medium mb-1.5 text-slate-700 dark:text-slate-300">
+                            オンラインURL <span class="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="url"
+                            id="online_url"
+                            name="online_url"
+                            value="{{ old('online_url', $event->online_url) }}"
+                            placeholder="例：https://zoom.us/j/123456789"
+                            class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-[#3E3E3A] bg-white dark:bg-[#0a0a0a] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition @error('online_url') border-red-500 focus:ring-red-500 @enderror"
+                        />
+                        @error('online_url')
+                            <p class="text-red-500 text-sm mt-1.5">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
+                        <label for="online_password" class="block text-sm font-medium mb-1.5 text-slate-700 dark:text-slate-300">
+                            パスワード <span class="text-slate-400 font-normal text-xs">（任意）</span>
+                        </label>
+                        <input
+                            type="text"
+                            id="online_password"
+                            name="online_password"
+                            value="{{ old('online_password', $event->online_password) }}"
+                            placeholder="例：abc123"
+                            class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-[#3E3E3A] bg-white dark:bg-[#0a0a0a] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition @error('online_password') border-red-500 focus:ring-red-500 @enderror"
+                        />
+                        @error('online_password')
+                            <p class="text-red-500 text-sm mt-1.5">{{ $message }}</p>
+                        @enderror
+                    </div>
                 </div>
 
                 <!-- 開催日時 -->
@@ -226,6 +262,29 @@
                     </a>
                 </div>
             </form>
+
+            <script>
+(function () {
+    const prefectureSelect = document.getElementById('prefecture');
+    const locationField = document.getElementById('location-field');
+    const onlineFields = document.getElementById('online-fields');
+
+    if (!prefectureSelect || !locationField || !onlineFields) { return; }
+
+    applyVisibility(prefectureSelect.value);
+
+    prefectureSelect.addEventListener('change', function () {
+        applyVisibility(this.value);
+    });
+
+    function applyVisibility(pref) {
+        const isOnline = pref === 'オンライン';
+        const isHybrid = pref === 'ハイブリッド';
+        locationField.style.display = isOnline ? 'none' : '';
+        onlineFields.style.display = (isOnline || isHybrid) ? '' : 'none';
+    }
+}());
+</script>
 
             <!-- 削除フォーム（更新フォームの外） -->
             <div class="mt-6 pt-6 border-t border-slate-200 dark:border-[#3E3E3A]">

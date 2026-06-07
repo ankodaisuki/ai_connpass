@@ -20,6 +20,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'category',
     'prefecture',
     'location',
+    'online_url',
+    'online_password',
     'event_date',
     'end_date',
     'capacity',

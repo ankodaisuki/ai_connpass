@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AttendanceMode;
 use App\Enums\AttendanceStatus;
 use App\Enums\EventStatus;
 use App\Exceptions\AttendanceException;
@@ -12,6 +13,7 @@ use App\Services\EventAttendanceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
 
 class EventAttendanceController extends Controller
@@ -21,7 +23,7 @@ class EventAttendanceController extends Controller
     /**
      * イベント申し込み
      */
-    public function store(Event $event): RedirectResponse
+    public function store(Request $request, Event $event): RedirectResponse
     {
         if ($event->status !== EventStatus::Published) {
             abort(Response::HTTP_NOT_FOUND);
@@ -30,8 +32,18 @@ class EventAttendanceController extends Controller
         /** @var User $user */
         $user = auth()->user();
 
+        $attendanceMode = match ($event->prefecture) {
+            'オンライン' => AttendanceMode::Online,
+            'ハイブリッド' => AttendanceMode::from(
+                $request->validate([
+                    'attendance_mode' => ['required', Rule::enum(AttendanceMode::class)],
+                ])['attendance_mode']
+            ),
+            default => AttendanceMode::InPerson,
+        };
+
         try {
-            $result = $this->attendanceService->apply($event, $user);
+            $result = $this->attendanceService->apply($event, $user, $attendanceMode);
         } catch (AttendanceException $e) {
             return back()->withErrors(['attendance' => $e->getMessage()]);
         }
