@@ -122,5 +122,16 @@
             &copy; {{ date('Y') }} AI Connpass
         </div>
     </footer>
+
+    <script>
+        document.addEventListener('submit', function (e) {
+            var form = e.target;
+            var btn = form.querySelector('[type="submit"]');
+            if (!btn || btn.disabled) return;
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+            btn.style.cursor = 'not-allowed';
+        });
+    </script>
 </body>
 </html>
