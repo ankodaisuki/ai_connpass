@@ -44,17 +44,32 @@ class EventOrganizerController extends Controller
             ]);
         }
 
-        if ($event->eventOrganizers()->where('user_id', $invitee->id)->exists()) {
-            throw ValidationException::withMessages([
-                'email' => 'このユーザーはすでに招待済みです。',
+        $existing = $event->eventOrganizers()->where('user_id', $invitee->id)->first();
+
+        if ($existing !== null) {
+            if ($existing->status === OrganizerInvitationStatus::Pending) {
+                throw ValidationException::withMessages([
+                    'email' => 'このユーザーはすでに招待済みです（返答待ち）。',
+                ]);
+            }
+            if ($existing->status === OrganizerInvitationStatus::Accepted) {
+                throw ValidationException::withMessages([
+                    'email' => 'このユーザーはすでに合同主催者です。',
+                ]);
+            }
+            // Declined → Pending に戻して再招待
+            $existing->update([
+                'status' => OrganizerInvitationStatus::Pending,
+                'invited_at' => now(),
+                'responded_at' => null,
+            ]);
+        } else {
+            $event->eventOrganizers()->create([
+                'user_id' => $invitee->id,
+                'status' => OrganizerInvitationStatus::Pending,
+                'invited_at' => now(),
             ]);
         }
-
-        $event->eventOrganizers()->create([
-            'user_id' => $invitee->id,
-            'status' => OrganizerInvitationStatus::Pending,
-            'invited_at' => now(),
-        ]);
 
         /** @var User $owner */
         $owner = $request->user();

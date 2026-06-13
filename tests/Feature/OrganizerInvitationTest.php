@@ -71,7 +71,7 @@ class OrganizerInvitationTest extends TestCase
         $this->assertDatabaseCount('event_organizers', 0);
     }
 
-    public function test_cannot_invite_same_user_twice(): void
+    public function test_cannot_invite_pending_user_again(): void
     {
         Mail::fake();
         $owner = User::factory()->create();
@@ -84,5 +84,40 @@ class OrganizerInvitationTest extends TestCase
             ->post(route('events.organizers.store', $event), ['email' => 'dup@example.com'])
             ->assertSessionHasErrors('email');
         $this->assertDatabaseCount('event_organizers', 1);
+    }
+
+    public function test_cannot_invite_accepted_co_organizer(): void
+    {
+        Mail::fake();
+        $owner = User::factory()->create();
+        $invitee = User::factory()->create(['email' => 'accepted@example.com']);
+        $event = Event::factory()->create(['user_id' => $owner->id]);
+        EventOrganizer::factory()->accepted()->create(['event_id' => $event->id, 'user_id' => $invitee->id]);
+
+        $this->actingAs($owner)
+            ->from(route('events.show', $event))
+            ->post(route('events.organizers.store', $event), ['email' => 'accepted@example.com'])
+            ->assertSessionHasErrors('email');
+    }
+
+    public function test_declined_user_can_be_reinvited(): void
+    {
+        Mail::fake();
+        $owner = User::factory()->create();
+        $invitee = User::factory()->create(['email' => 'declined@example.com']);
+        $event = Event::factory()->create(['user_id' => $owner->id]);
+        EventOrganizer::factory()->declined()->create(['event_id' => $event->id, 'user_id' => $invitee->id]);
+
+        $this->actingAs($owner)
+            ->post(route('events.organizers.store', $event), ['email' => 'declined@example.com'])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('event_organizers', [
+            'event_id' => $event->id,
+            'user_id' => $invitee->id,
+            'status' => OrganizerInvitationStatus::Pending->value,
+        ]);
+        $this->assertDatabaseCount('event_organizers', 1);
+        Mail::assertSent(OrganizerInvitedMail::class);
     }
 }
