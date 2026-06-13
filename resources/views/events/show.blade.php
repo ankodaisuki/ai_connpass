@@ -39,18 +39,20 @@
                     </svg>
                     編集
                 </a>
-                <form method="POST" action="{{ route('events.destroy', $event) }}"
-                    onsubmit="return confirm('このイベントを削除してもよいですか？この操作は取り消せません。')">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit"
-                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 text-xs font-medium transition-colors">
-                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                        </svg>
-                        削除
-                    </button>
-                </form>
+                @can('delete', $event)
+                    <form method="POST" action="{{ route('events.destroy', $event) }}"
+                        onsubmit="return confirm('このイベントを削除してもよいですか？この操作は取り消せません。')">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 text-xs font-medium transition-colors">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                            </svg>
+                            削除
+                        </button>
+                    </form>
+                @endcan
             </div>
         @endcan
     </nav>
@@ -81,6 +83,9 @@
                     {{ mb_substr($event->user->name, 0, 1) }}
                 </span>
                 <span class="text-sm">主催: {{ $event->user->name }}</span>
+                @foreach ($event->acceptedCoOrganizers as $coOrganizer)
+                    <span class="text-sm text-white/80">/ {{ $coOrganizer->name }}</span>
+                @endforeach
             </div>
         </div>
     </div>
@@ -233,7 +238,7 @@
                     @endif
 
                     @auth
-                        @if ($event->user_id === auth()->id())
+                        @if ($event->isOrganizer(auth()->user()))
                             <a href="{{ route('events.edit', $event) }}"
                                 class="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl border border-slate-300 dark:border-[#3E3E3A] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1a1a18] text-sm font-semibold transition">
                                 イベントを編集する
@@ -479,6 +484,74 @@
                             @endforeach
                         </div>
                     @endif
+                @endif
+            </section>
+        </div>
+    @endcan
+
+    {{-- 合同主催者管理（オーナーのみ） --}}
+    @can('inviteOrganizer', $event)
+        <div class="mt-6">
+            <section class="rounded-2xl bg-white dark:bg-[#161615] border border-slate-200 dark:border-[#3E3E3A] p-6 sm:p-8 shadow-sm">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                    <span class="h-1 w-6 rounded-full bg-gradient-to-r {{ $style['gradient'] }}"></span>
+                    合同主催者
+                </h2>
+
+                @foreach ($event->eventOrganizers()->with('user')->get() as $organizer)
+                    <div class="mb-2 flex items-center justify-between text-sm">
+                        <span class="text-slate-700 dark:text-slate-200">
+                            {{ $organizer->user->name }}
+                            <span class="ml-1 text-xs text-slate-400">
+                                @switch($organizer->status)
+                                    @case(\App\Enums\OrganizerInvitationStatus::Pending) （招待中） @break
+                                    @case(\App\Enums\OrganizerInvitationStatus::Accepted) （承諾済み） @break
+                                    @case(\App\Enums\OrganizerInvitationStatus::Declined) （辞退） @break
+                                @endswitch
+                            </span>
+                        </span>
+                        <form method="POST" action="{{ route('events.organizers.destroy', [$event, $organizer]) }}"
+                            onsubmit="return confirm('この合同主催者を外しますか？')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="text-xs text-red-600 hover:underline dark:text-red-400">外す</button>
+                        </form>
+                    </div>
+                @endforeach
+
+                <form method="POST" action="{{ route('events.organizers.store', $event) }}" class="mt-4 flex gap-2">
+                    @csrf
+                    <input type="email" name="email" required placeholder="招待する人のメールアドレス"
+                        class="flex-1 rounded-md border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" />
+                    <button type="submit" class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
+                        合同主催者を招待
+                    </button>
+                </form>
+                @error('email')
+                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                @enderror
+
+                @php($acceptedCoOrganizers = $event->acceptedCoOrganizers)
+                @if ($acceptedCoOrganizers->isNotEmpty())
+                    <form method="POST" action="{{ route('events.ownership.update', $event) }}" class="mt-4 border-t border-slate-200 pt-4 dark:border-slate-700"
+                        onsubmit="return confirm('オーナーを移譲すると、あなたは合同主催者になります。よろしいですか？')">
+                        @csrf
+                        @method('PATCH')
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">オーナーを移譲する</label>
+                        <div class="flex gap-2">
+                            <select name="user_id" required class="flex-1 rounded-md border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100">
+                                @foreach ($acceptedCoOrganizers as $candidate)
+                                    <option value="{{ $candidate->id }}">{{ $candidate->name }}</option>
+                                @endforeach
+                            </select>
+                            <button type="submit" class="rounded-md border border-amber-500 px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20">
+                                移譲する
+                            </button>
+                        </div>
+                        @error('user_id')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+                    </form>
                 @endif
             </section>
         </div>
