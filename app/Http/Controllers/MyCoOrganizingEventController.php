@@ -21,7 +21,8 @@ class MyCoOrganizingEventController extends Controller
             ->with('event.user')
             ->latest('invited_at')
             ->get()
-            ->pluck('event');
+            ->pluck('event')
+            ->filter();
 
         return view('my.co-organizing-events', compact('events'));
     }
