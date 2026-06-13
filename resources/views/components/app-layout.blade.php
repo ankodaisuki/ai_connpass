@@ -50,6 +50,10 @@
                                     class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1a1a18] transition-colors">
                                     過去に参加したイベント
                                 </a>
+                                <a href="{{ route('my.co-organizing-events') }}"
+                                    class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1a1a18] transition-colors">
+                                    合同主催しているイベント
+                                </a>
                                 <a href="{{ route('my.organizer-invitations') }}"
                                     class="flex items-center justify-between px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1a1a18] transition-colors">
                                     合同主催の招待
@@ -93,6 +97,10 @@
                                 <a href="{{ route('my.attended-events') }}"
                                     class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1a1a18] transition-colors">
                                     過去に参加したイベント
+                                </a>
+                                <a href="{{ route('my.co-organizing-events') }}"
+                                    class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1a1a18] transition-colors">
+                                    合同主催しているイベント
                                 </a>
                                 <a href="{{ route('my.organizer-invitations') }}"
                                     class="flex items-center justify-between px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1a1a18] transition-colors">

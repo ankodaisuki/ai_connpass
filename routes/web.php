@@ -8,6 +8,7 @@ use App\Http\Controllers\EventOrganizerController;
 use App\Http\Controllers\EventOwnershipController;
 use App\Http\Controllers\GoogleCalendarConnectionController;
 use App\Http\Controllers\MyAttendanceController;
+use App\Http\Controllers\MyCoOrganizingEventController;
 use App\Http\Controllers\MyOrganizerInvitationController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -29,6 +30,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('events/{event}/attendances/{attendance}', [EventAttendanceController::class, 'update'])->name('events.attendances.update');
     Route::get('events/{event}/attendances', fn ($event) => redirect()->route('events.show', $event));
     Route::get('my/organizer-invitations', [MyOrganizerInvitationController::class, 'index'])->name('my.organizer-invitations');
+    Route::get('my/co-organizing-events', [MyCoOrganizingEventController::class, 'index'])->name('my.co-organizing-events');
     Route::post('events/{event}/organizers', [EventOrganizerController::class, 'store'])->name('events.organizers.store');
     Route::delete('events/{event}/organizers/{eventOrganizer}', [EventOrganizerController::class, 'destroy'])->scopeBindings()->name('events.organizers.destroy');
     Route::patch('organizer-invitations/{eventOrganizer}/accept', [EventOrganizerController::class, 'accept'])->name('organizer-invitations.accept');
