@@ -15,10 +15,16 @@
                         {{ $event->event_date->format('Y/m/d H:i') }}
                     </p>
                 </div>
-                <a href="{{ route('events.edit', $event) }}"
-                    class="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700">
-                    編集
-                </a>
+                @if (!$event->end_date->isPast())
+                    <a href="{{ route('events.edit', $event) }}"
+                        class="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700">
+                        編集
+                    </a>
+                @else
+                    <span class="rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-400 dark:border-slate-700 dark:text-slate-600">
+                        終了済み
+                    </span>
+                @endif
             </div>
         @empty
             <p class="text-sm text-slate-500 dark:text-slate-400">合同主催しているイベントはありません。</p>
