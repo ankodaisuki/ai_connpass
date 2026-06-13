@@ -38,4 +38,30 @@ class MyOrganizerInvitationTest extends TestCase
     {
         $this->get(route('my.organizer-invitations'))->assertRedirect(route('login'));
     }
+
+    public function test_nav_shows_badge_when_pending_invitations_exist(): void
+    {
+        $me = User::factory()->create();
+        $event = Event::factory()->create();
+        EventOrganizer::factory()->create(['event_id' => $event->id, 'user_id' => $me->id]);
+
+        $this->actingAs($me)
+            ->get(route('events.index'))
+            ->assertSee('合同主催の招待')
+            ->assertSee('1');
+    }
+
+    public function test_nav_shows_no_badge_when_no_pending_invitations(): void
+    {
+        $me = User::factory()->create();
+
+        $response = $this->actingAs($me)->get(route('events.index'));
+
+        $response->assertSee('合同主催の招待');
+        // バッジ数字（件数）が表示されないことを確認
+        $this->assertStringNotContainsString(
+            'bg-indigo-600 text-white text-xs font-bold',
+            $response->getContent(),
+        );
+    }
 }

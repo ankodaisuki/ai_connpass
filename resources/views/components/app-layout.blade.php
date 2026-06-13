@@ -20,6 +20,7 @@
 
                 <nav class="flex items-center gap-2 sm:gap-3">
                     @auth
+                        @php($pendingInvitationCount = auth()->user()->organizerInvitations()->where('status', \App\Enums\OrganizerInvitationStatus::Pending)->count())
                         <a href="{{ route('events.create') }}"
                             class="inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium shadow-sm transition-colors">
                             ＋ イベント作成
@@ -48,6 +49,15 @@
                                 <a href="{{ route('my.attended-events') }}"
                                     class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1a1a18] transition-colors">
                                     過去に参加したイベント
+                                </a>
+                                <a href="{{ route('my.organizer-invitations') }}"
+                                    class="flex items-center justify-between px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1a1a18] transition-colors">
+                                    合同主催の招待
+                                    @if ($pendingInvitationCount > 0)
+                                        <span class="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full bg-indigo-600 text-white text-xs font-bold">
+                                            {{ $pendingInvitationCount }}
+                                        </span>
+                                    @endif
                                 </a>
                                 <div class="my-1 border-t border-slate-100 dark:border-[#3E3E3A]"></div>
                                 <form method="POST" action="{{ route('logout') }}">
@@ -83,6 +93,15 @@
                                 <a href="{{ route('my.attended-events') }}"
                                     class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1a1a18] transition-colors">
                                     過去に参加したイベント
+                                </a>
+                                <a href="{{ route('my.organizer-invitations') }}"
+                                    class="flex items-center justify-between px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1a1a18] transition-colors">
+                                    合同主催の招待
+                                    @if ($pendingInvitationCount > 0)
+                                        <span class="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full bg-indigo-600 text-white text-xs font-bold">
+                                            {{ $pendingInvitationCount }}
+                                        </span>
+                                    @endif
                                 </a>
                                 <div class="my-1 border-t border-slate-100 dark:border-[#3E3E3A]"></div>
                                 <form method="POST" action="{{ route('logout') }}">
