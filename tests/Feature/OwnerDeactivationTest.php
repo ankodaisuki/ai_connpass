@@ -67,4 +67,26 @@ class OwnerDeactivationTest extends TestCase
         $this->assertSoftDeleted('events', ['id' => $event->id]);
         Mail::assertSent(EventCancelledMail::class);
     }
+
+    public function test_ended_events_are_not_cancelled_on_owner_deactivation(): void
+    {
+        Mail::fake();
+        $owner = User::factory()->create();
+        $participant = User::factory()->create();
+        $event = Event::factory()->create([
+            'user_id' => $owner->id,
+            'status' => EventStatus::Published,
+            'event_date' => Carbon::yesterday(),
+            'end_date' => Carbon::yesterday()->addHours(2),
+        ]);
+        EventAttendance::factory()->create([
+            'event_id' => $event->id,
+            'user_id' => $participant->id,
+        ]);
+
+        $owner->update(['status' => UserStatus::Inactive]);
+
+        $this->assertNull($event->fresh()->deleted_at);
+        Mail::assertNotSent(EventCancelledMail::class);
+    }
 }

@@ -20,7 +20,7 @@ class EventOwnershipService
      */
     public function handleOwnerDeactivation(User $user): void
     {
-        $user->events()->get()->each(function (Event $event): void {
+        $user->events()->where('end_date', '>', now())->get()->each(function (Event $event): void {
             $this->resolve($event);
         });
     }
