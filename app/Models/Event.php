@@ -5,11 +5,13 @@ namespace App\Models;
 use App\Enums\AttendanceStatus;
 use App\Enums\EventCategory;
 use App\Enums\EventStatus;
+use App\Enums\OrganizerInvitationStatus;
 use Database\Factories\EventFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -87,5 +89,55 @@ class Event extends Model
     {
         return $this->hasMany(EventAttendance::class)
             ->where('status', AttendanceStatus::Waitlisted);
+    }
+
+    /**
+     * このイベントの合同主催者の招待レコード（全状態）
+     *
+     * @return HasMany<EventOrganizer, $this>
+     */
+    public function eventOrganizers(): HasMany
+    {
+        return $this->hasMany(EventOrganizer::class);
+    }
+
+    /**
+     * 承諾済みの合同主催者（公開表示・権限判定に使用）
+     *
+     * @return BelongsToMany<User, $this>
+     */
+    public function acceptedCoOrganizers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'event_organizers')
+            ->wherePivot('status', OrganizerInvitationStatus::Accepted->value)
+            ->withPivot(['status', 'invited_at', 'responded_at'])
+            ->withTimestamps();
+    }
+
+    /**
+     * 指定ユーザーがこのイベントのオーナー（作成者）か
+     */
+    public function isOwner(User $user): bool
+    {
+        return $this->user_id === $user->id;
+    }
+
+    /**
+     * 指定ユーザーが承諾済みの合同主催者か
+     */
+    public function isAcceptedCoOrganizer(User $user): bool
+    {
+        return $this->eventOrganizers()
+            ->where('user_id', $user->id)
+            ->where('status', OrganizerInvitationStatus::Accepted)
+            ->exists();
+    }
+
+    /**
+     * 指定ユーザーが主催者（オーナー or 承諾済み合同主催者）か
+     */
+    public function isOrganizer(User $user): bool
+    {
+        return $this->isOwner($user) || $this->isAcceptedCoOrganizer($user);
     }
 }
