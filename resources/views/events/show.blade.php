@@ -32,13 +32,15 @@
         </a>
         @can('update', $event)
             <div class="flex items-center gap-2">
-                <a href="{{ route('events.edit', $event) }}"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-[#3E3E3A] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1a1a18] text-xs font-medium transition-colors">
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
-                    </svg>
-                    編集
-                </a>
+                @if (! $hasEnded)
+                    <a href="{{ route('events.edit', $event) }}"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-[#3E3E3A] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1a1a18] text-xs font-medium transition-colors">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
+                        </svg>
+                        編集
+                    </a>
+                @endif
                 @can('delete', $event)
                     <form method="POST" action="{{ route('events.destroy', $event) }}"
                         onsubmit="return confirm('このイベントを削除してもよいですか？この操作は取り消せません。')">
@@ -238,7 +240,7 @@
                     @endif
 
                     @auth
-                        @if ($event->isOrganizer(auth()->user()))
+                        @if ($event->isOrganizer(auth()->user()) && ! $hasEnded)
                             <a href="{{ route('events.edit', $event) }}"
                                 class="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl border border-slate-300 dark:border-[#3E3E3A] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1a1a18] text-sm font-semibold transition">
                                 イベントを編集する
