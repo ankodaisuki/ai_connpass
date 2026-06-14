@@ -172,6 +172,21 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 </laravel-boost-guidelines>
 
+## データベース操作の注意事項
+
+- **`migrate:fresh` や `migrate:rollback` など破壊的なマイグレーション操作を行う前に、必ずローカル DB のダンプを取ること。**
+
+```bash
+# 実行前にバックアップ
+./vendor/bin/sail exec mysql mysqldump -u sail -psecret ai_connpass > backup.sql
+
+# 復元が必要になったとき
+./vendor/bin/sail exec -T mysql mysql -u sail -psecret ai_connpass < backup.sql
+```
+
+- テーブルのリネームなどスキーマ変更を伴う作業では、既存マイグレーションを直接書き換えるのではなく新規マイグレーションを追加するか、事前にダンプを取ってから `migrate:fresh` を行うこと。
+- ローカルデータは一度消えると復元できないため、「テスト用データを再作成するコスト」を意識して操作を選ぶこと。
+
 ## アーキテクチャ決定記録（ADR）
 
 - **バージョン単位で ADR を作成する。** 各バージョン（V5, V6, ...）の重要な設計判断は `docs/adr/v{N}/` に4桁連番（`0001-{slug}.md`）で記録する。索引は `docs/adr/README.md` に置く。
