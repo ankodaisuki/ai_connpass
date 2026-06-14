@@ -1,0 +1,233 @@
+<?php
+
+namespace Tests\Feature\My;
+
+use App\Enums\EventStatus;
+use App\Models\Event;
+use App\Models\EventAttendance;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class MyAttendanceTest extends TestCase
+{
+    use RefreshDatabase;
+
+    /** ゲストはマイページにアクセスできない（login へリダイレクト） */
+    public function test_index_requires_auth(): void
+    {
+        $this->get(route('my.attendances'))->assertRedirect(route('login'));
+    }
+
+    /** 認証済みユーザーはマイページに 200 でアクセスできる */
+    public function test_index_returns_200_for_auth_user(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->get(route('my.attendances'))->assertStatus(200);
+    }
+
+    /** 自分の Applied 参加のみ表示（Cancelled・他人の参加は除外） */
+    public function test_index_shows_only_own_applied_attendances(): void
+    {
+        $user = User::factory()->create();
+        $organizer = User::factory()->create();
+        $other = User::factory()->create();
+
+        $event1 = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'title' => 'my-applied-event']);
+        $event2 = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'title' => 'my-cancelled-event']);
+        $event3 = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'title' => 'others-event']);
+
+        // 自分の Applied
+        EventAttendance::factory()->for($event1)->for($user)->create();
+        // 自分の Cancelled（除外される）
+        EventAttendance::factory()->for($event2)->for($user)->cancelled()->create();
+        // 他人の Applied（除外される）
+        EventAttendance::factory()->for($event3)->for($other)->create();
+
+        $response = $this->actingAs($user)->get(route('my.attendances'));
+
+        $response->assertSee('my-applied-event');
+        $response->assertDontSee('my-cancelled-event');
+        $response->assertDontSee('others-event');
+    }
+
+    /** 非公開・下書きイベントは一覧から除外される */
+    public function test_index_excludes_non_published_events(): void
+    {
+        $user = User::factory()->create();
+        $organizer = User::factory()->create();
+
+        $published = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'title' => 'published-event']);
+        $private = Event::factory()->for($organizer)->create(['status' => EventStatus::Private, 'title' => 'private-event']);
+        $draft = Event::factory()->for($organizer)->create(['status' => EventStatus::Draft, 'title' => 'draft-event']);
+
+        EventAttendance::factory()->for($published)->for($user)->create();
+        EventAttendance::factory()->for($private)->for($user)->create();
+        EventAttendance::factory()->for($draft)->for($user)->create();
+
+        $response = $this->actingAs($user)->get(route('my.attendances'));
+
+        $response->assertSee('published-event');
+        $response->assertDontSee('private-event');
+        $response->assertDontSee('draft-event');
+    }
+
+    /** 15 件/ページ（16件 → 1ページ目に 15件・2ページ目に 1件） */
+    public function test_index_paginates_with_15_per_page(): void
+    {
+        $user = User::factory()->create();
+        $organizer = User::factory()->create();
+
+        for ($i = 1; $i <= 15; $i++) {
+            $event = Event::factory()->for($organizer)->create([
+                'status' => EventStatus::Published,
+                'title' => "event-{$i}",
+            ]);
+            EventAttendance::factory()->for($event)->for($user)->create([
+                'applied_at' => now()->addMinutes($i),
+            ]);
+        }
+
+        $event16 = Event::factory()->for($organizer)->create([
+            'status' => EventStatus::Published,
+            'title' => 'event-page-2',
+        ]);
+        EventAttendance::factory()->for($event16)->for($user)->create([
+            'applied_at' => now()->addMinutes(16),
+        ]);
+
+        $this->actingAs($user)->get(route('my.attendances'))->assertDontSee('event-page-2');
+        $this->actingAs($user)->get(route('my.attendances', ['page' => 2]))->assertSee('event-page-2');
+    }
+
+    /** applied_at 昇順で表示（早い申込が先頭） */
+    public function test_index_sorts_by_applied_at_ascending(): void
+    {
+        $user = User::factory()->create();
+        $organizer = User::factory()->create();
+
+        $event1 = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'title' => 'later-applied']);
+        EventAttendance::factory()->for($event1)->for($user)->create(['applied_at' => now()->addHours(2)]);
+
+        $event2 = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'title' => 'sooner-applied']);
+        EventAttendance::factory()->for($event2)->for($user)->create(['applied_at' => now()->addHours(1)]);
+
+        $response = $this->actingAs($user)->get(route('my.attendances'));
+        $content = $response->getContent();
+
+        $this->assertLessThan(strpos($content, 'later-applied'), strpos($content, 'sooner-applied'));
+    }
+
+    // ==========================================
+    // attended - 過去に参加したイベント
+    // ==========================================
+
+    /** ゲストは過去に参加したイベントにアクセスできない（login へリダイレクト） */
+    public function test_attended_requires_auth(): void
+    {
+        $this->get(route('my.attended-events'))->assertRedirect(route('login'));
+    }
+
+    /** 認証済みユーザーは 200 でアクセスできる */
+    public function test_attended_returns_200_for_auth_user(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->get(route('my.attended-events'))->assertStatus(200);
+    }
+
+    /** 出席記録済み・開催済み・公開中のイベントのみ表示する */
+    public function test_attended_shows_only_attended_past_published_events(): void
+    {
+        $user = User::factory()->create();
+        $organizer = User::factory()->create();
+        $other = User::factory()->create();
+
+        $attendedPast = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'event_date' => now()->subDays(2), 'title' => 'attended-past-event']);
+        $notAttendedPast = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'event_date' => now()->subDays(2), 'title' => 'not-attended-event']);
+        $attendedFuture = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'event_date' => now()->addDays(2), 'title' => 'attended-future-event']);
+        $attendedPrivate = Event::factory()->for($organizer)->create(['status' => EventStatus::Private, 'event_date' => now()->subDays(2), 'title' => 'attended-private-event']);
+        $attendedDraft = Event::factory()->for($organizer)->create(['status' => EventStatus::Draft, 'event_date' => now()->subDays(2), 'title' => 'attended-draft-event']);
+        $attendedDeleted = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'event_date' => now()->subDays(2), 'title' => 'attended-deleted-event']);
+        $othersAttended = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'event_date' => now()->subDays(2), 'title' => 'others-attended-event']);
+
+        EventAttendance::factory()->for($attendedPast)->for($user)->attended()->create();
+        EventAttendance::factory()->for($notAttendedPast)->for($user)->create();
+        EventAttendance::factory()->for($attendedFuture)->for($user)->attended()->create();
+        EventAttendance::factory()->for($attendedPrivate)->for($user)->attended()->create();
+        EventAttendance::factory()->for($attendedDraft)->for($user)->attended()->create();
+        EventAttendance::factory()->for($attendedDeleted)->for($user)->attended()->create();
+        EventAttendance::factory()->for($othersAttended)->for($other)->attended()->create();
+
+        $attendedDeleted->delete();
+
+        $response = $this->actingAs($user)->get(route('my.attended-events'));
+
+        $response->assertSee('attended-past-event');
+        $response->assertDontSee('not-attended-event');
+        $response->assertDontSee('attended-future-event');
+        $response->assertDontSee('attended-private-event');
+        $response->assertDontSee('attended-draft-event');
+        $response->assertDontSee('attended-deleted-event');
+        $response->assertDontSee('others-attended-event');
+    }
+
+    // ==========================================
+    // waitlist tab
+    // ==========================================
+
+    /** ?tab=waitlist でキャンセル待ちのみ表示される */
+    public function test_waitlist_tab_shows_only_own_waitlisted_attendances(): void
+    {
+        $user = User::factory()->create();
+        $organizer = User::factory()->create();
+
+        $waitlistedEvent = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'title' => 'waitlisted-event']);
+        $appliedEvent = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'title' => 'applied-event']);
+
+        EventAttendance::factory()->for($waitlistedEvent)->for($user)->waitlisted()->create();
+        EventAttendance::factory()->for($appliedEvent)->for($user)->create();
+
+        $response = $this->actingAs($user)->get(route('my.attendances', ['tab' => 'waitlist']));
+
+        $response->assertSee('waitlisted-event');
+        $response->assertDontSee('applied-event');
+    }
+
+    /** ?tab=waitlist で非公開イベントのキャンセル待ちは除外される */
+    public function test_waitlist_tab_excludes_non_published_events(): void
+    {
+        $user = User::factory()->create();
+        $organizer = User::factory()->create();
+
+        $published = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'title' => 'waitlist-published']);
+        $draft = Event::factory()->for($organizer)->create(['status' => EventStatus::Draft, 'title' => 'waitlist-draft']);
+
+        EventAttendance::factory()->for($published)->for($user)->waitlisted()->create();
+        EventAttendance::factory()->for($draft)->for($user)->waitlisted()->create();
+
+        $response = $this->actingAs($user)->get(route('my.attendances', ['tab' => 'waitlist']));
+
+        $response->assertSee('waitlist-published');
+        $response->assertDontSee('waitlist-draft');
+    }
+
+    /** デフォルト（パラメータなし）では Applied タブが表示される */
+    public function test_default_tab_shows_applied_not_waitlisted(): void
+    {
+        $user = User::factory()->create();
+        $organizer = User::factory()->create();
+
+        $appliedEvent = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'title' => 'my-applied']);
+        $waitlistedEvent = Event::factory()->for($organizer)->create(['status' => EventStatus::Published, 'title' => 'my-waitlisted']);
+
+        EventAttendance::factory()->for($appliedEvent)->for($user)->create();
+        EventAttendance::factory()->for($waitlistedEvent)->for($user)->waitlisted()->create();
+
+        $response = $this->actingAs($user)->get(route('my.attendances'));
+
+        $response->assertSee('my-applied');
+        $response->assertDontSee('my-waitlisted');
+    }
+}
