@@ -286,6 +286,7 @@
 }());
 </script>
 
+            @can('delete', $event)
             <!-- 削除フォーム（更新フォームの外） -->
             <div class="mt-6 pt-6 border-t border-slate-200 dark:border-[#3E3E3A]">
                 <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">危険な操作</p>
@@ -302,6 +303,7 @@
                     </button>
                 </form>
             </div>
+            @endcan
 
         </div>
     </div>

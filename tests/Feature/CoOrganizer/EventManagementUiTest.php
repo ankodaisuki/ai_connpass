@@ -48,4 +48,28 @@ class EventManagementUiTest extends TestCase
 
         $response->assertSee(route('events.edit', $event));
     }
+
+    public function test_co_organizer_does_not_see_delete_button_on_edit_page(): void
+    {
+        $owner = User::factory()->create();
+        $coOrganizer = User::factory()->create();
+        $event = Event::factory()->create(['user_id' => $owner->id, 'status' => EventStatus::Published]);
+        EventCoOrganizer::factory()->accepted()->create(['event_id' => $event->id, 'user_id' => $coOrganizer->id]);
+
+        $response = $this->actingAs($coOrganizer)->get(route('events.edit', $event));
+
+        $response->assertOk();
+        $response->assertDontSee('このイベントを削除する');
+    }
+
+    public function test_owner_sees_delete_button_on_edit_page(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->create(['user_id' => $owner->id, 'status' => EventStatus::Published]);
+
+        $response = $this->actingAs($owner)->get(route('events.edit', $event));
+
+        $response->assertOk();
+        $response->assertSee('このイベントを削除する');
+    }
 }
