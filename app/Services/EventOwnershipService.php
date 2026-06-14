@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Enums\OrganizerInvitationStatus;
 use App\Models\Event;
-use App\Models\EventOrganizer;
+use App\Models\EventCoOrganizer;
 use App\Models\User;
 
 class EventOwnershipService
@@ -33,11 +33,11 @@ class EventOwnershipService
     {
         $previousOwnerId = $event->user_id;
 
-        $event->eventOrganizers()->where('user_id', $newOwner->id)->delete();
+        $event->eventCoOrganizers()->where('user_id', $newOwner->id)->delete();
 
         $event->update(['user_id' => $newOwner->id]);
 
-        $event->eventOrganizers()->updateOrCreate(
+        $event->eventCoOrganizers()->updateOrCreate(
             ['user_id' => $previousOwnerId],
             [
                 'status' => OrganizerInvitationStatus::Accepted,
@@ -49,13 +49,13 @@ class EventOwnershipService
 
     private function resolve(Event $event): void
     {
-        $successor = $event->eventOrganizers()
+        $successor = $event->eventCoOrganizers()
             ->where('status', OrganizerInvitationStatus::Accepted)
             ->orderBy('invited_at')
             ->orderBy('id')
             ->first();
 
-        if ($successor instanceof EventOrganizer) {
+        if ($successor instanceof EventCoOrganizer) {
             $event->update(['user_id' => $successor->user_id]);
             $successor->delete();
 

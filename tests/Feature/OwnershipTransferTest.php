@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\OrganizerInvitationStatus;
 use App\Models\Event;
-use App\Models\EventOrganizer;
+use App\Models\EventCoOrganizer;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -18,7 +18,7 @@ class OwnershipTransferTest extends TestCase
         $owner = User::factory()->create();
         $coOrganizer = User::factory()->create();
         $event = Event::factory()->create(['user_id' => $owner->id]);
-        EventOrganizer::factory()->accepted()->create([
+        EventCoOrganizer::factory()->accepted()->create([
             'event_id' => $event->id,
             'user_id' => $coOrganizer->id,
         ]);
@@ -28,11 +28,11 @@ class OwnershipTransferTest extends TestCase
             ->assertRedirect(route('events.show', $event));
 
         $this->assertSame($coOrganizer->id, $event->fresh()->user_id);
-        $this->assertDatabaseMissing('event_organizers', [
+        $this->assertDatabaseMissing('event_co_organizers', [
             'event_id' => $event->id,
             'user_id' => $coOrganizer->id,
         ]);
-        $this->assertDatabaseHas('event_organizers', [
+        $this->assertDatabaseHas('event_co_organizers', [
             'event_id' => $event->id,
             'user_id' => $owner->id,
             'status' => OrganizerInvitationStatus::Accepted->value,
@@ -44,7 +44,7 @@ class OwnershipTransferTest extends TestCase
         $owner = User::factory()->create();
         $pending = User::factory()->create();
         $event = Event::factory()->create(['user_id' => $owner->id]);
-        EventOrganizer::factory()->create([
+        EventCoOrganizer::factory()->create([
             'event_id' => $event->id,
             'user_id' => $pending->id,
             'status' => OrganizerInvitationStatus::Pending,
@@ -63,7 +63,7 @@ class OwnershipTransferTest extends TestCase
         $owner = User::factory()->create();
         $coOrganizer = User::factory()->create();
         $event = Event::factory()->create(['user_id' => $owner->id]);
-        EventOrganizer::factory()->accepted()->create([
+        EventCoOrganizer::factory()->accepted()->create([
             'event_id' => $event->id,
             'user_id' => $coOrganizer->id,
         ]);

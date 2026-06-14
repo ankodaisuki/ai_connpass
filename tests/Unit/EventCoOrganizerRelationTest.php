@@ -3,12 +3,12 @@
 namespace Tests\Unit;
 
 use App\Models\Event;
-use App\Models\EventOrganizer;
+use App\Models\EventCoOrganizer;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class EventOrganizerRelationTest extends TestCase
+class EventCoOrganizerRelationTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -18,8 +18,8 @@ class EventOrganizerRelationTest extends TestCase
         $accepted = User::factory()->create();
         $pending = User::factory()->create();
 
-        EventOrganizer::factory()->accepted()->create(['event_id' => $event->id, 'user_id' => $accepted->id]);
-        EventOrganizer::factory()->create(['event_id' => $event->id, 'user_id' => $pending->id]);
+        EventCoOrganizer::factory()->accepted()->create(['event_id' => $event->id, 'user_id' => $accepted->id]);
+        EventCoOrganizer::factory()->create(['event_id' => $event->id, 'user_id' => $pending->id]);
 
         $ids = $event->acceptedCoOrganizers->pluck('id');
 
@@ -42,8 +42,8 @@ class EventOrganizerRelationTest extends TestCase
         $coOrganizer = User::factory()->create();
         $pending = User::factory()->create();
         $event = Event::factory()->create(['user_id' => $owner->id]);
-        EventOrganizer::factory()->accepted()->create(['event_id' => $event->id, 'user_id' => $coOrganizer->id]);
-        EventOrganizer::factory()->create(['event_id' => $event->id, 'user_id' => $pending->id]);
+        EventCoOrganizer::factory()->accepted()->create(['event_id' => $event->id, 'user_id' => $coOrganizer->id]);
+        EventCoOrganizer::factory()->create(['event_id' => $event->id, 'user_id' => $pending->id]);
 
         $this->assertTrue($event->isOrganizer($owner));
         $this->assertTrue($event->isOrganizer($coOrganizer));

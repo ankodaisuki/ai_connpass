@@ -28,7 +28,7 @@ class EventOwnershipController extends Controller
             'user_id' => ['required', 'integer'],
         ]);
 
-        $isAcceptedCoOrganizer = $event->eventOrganizers()
+        $isAcceptedCoOrganizer = $event->eventCoOrganizers()
             ->where('user_id', $validated['user_id'])
             ->where('status', OrganizerInvitationStatus::Accepted)
             ->exists();

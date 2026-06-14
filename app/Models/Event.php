@@ -94,11 +94,11 @@ class Event extends Model
     /**
      * このイベントの合同主催者の招待レコード（全状態）
      *
-     * @return HasMany<EventOrganizer, $this>
+     * @return HasMany<EventCoOrganizer, $this>
      */
-    public function eventOrganizers(): HasMany
+    public function eventCoOrganizers(): HasMany
     {
-        return $this->hasMany(EventOrganizer::class);
+        return $this->hasMany(EventCoOrganizer::class);
     }
 
     /**
@@ -108,7 +108,7 @@ class Event extends Model
      */
     public function acceptedCoOrganizers(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'event_organizers')
+        return $this->belongsToMany(User::class, 'event_co_organizers')
             ->wherePivot('status', OrganizerInvitationStatus::Accepted->value)
             ->withPivot(['status', 'invited_at', 'responded_at'])
             ->withTimestamps();
@@ -127,7 +127,7 @@ class Event extends Model
      */
     public function isAcceptedCoOrganizer(User $user): bool
     {
-        return $this->eventOrganizers()
+        return $this->eventCoOrganizers()
             ->where('user_id', $user->id)
             ->where('status', OrganizerInvitationStatus::Accepted)
             ->exists();

@@ -500,7 +500,7 @@
                     合同主催者
                 </h2>
 
-                @foreach ($event->eventOrganizers()->with('user')->get() as $organizer)
+                @foreach ($event->eventCoOrganizers()->with('user')->get() as $organizer)
                     <div class="mb-2 flex items-center justify-between text-sm">
                         <span class="text-slate-700 dark:text-slate-200">
                             {{ $organizer->user->name }}

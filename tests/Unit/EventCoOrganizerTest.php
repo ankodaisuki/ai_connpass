@@ -4,12 +4,12 @@ namespace Tests\Unit;
 
 use App\Enums\OrganizerInvitationStatus;
 use App\Models\Event;
-use App\Models\EventOrganizer;
+use App\Models\EventCoOrganizer;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class EventOrganizerTest extends TestCase
+class EventCoOrganizerTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -18,7 +18,7 @@ class EventOrganizerTest extends TestCase
         $event = Event::factory()->create();
         $user = User::factory()->create();
 
-        $organizer = EventOrganizer::factory()->create([
+        $organizer = EventCoOrganizer::factory()->create([
             'event_id' => $event->id,
             'user_id' => $user->id,
         ]);
@@ -29,7 +29,7 @@ class EventOrganizerTest extends TestCase
 
     public function test_status_is_cast_to_enum(): void
     {
-        $organizer = EventOrganizer::factory()->create([
+        $organizer = EventCoOrganizer::factory()->create([
             'status' => OrganizerInvitationStatus::Accepted,
         ]);
 
@@ -38,7 +38,7 @@ class EventOrganizerTest extends TestCase
 
     public function test_factory_accepted_state(): void
     {
-        $organizer = EventOrganizer::factory()->accepted()->create();
+        $organizer = EventCoOrganizer::factory()->accepted()->create();
 
         $this->assertSame(OrganizerInvitationStatus::Accepted, $organizer->status);
         $this->assertNotNull($organizer->responded_at);

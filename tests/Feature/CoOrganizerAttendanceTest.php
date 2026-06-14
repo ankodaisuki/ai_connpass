@@ -6,7 +6,7 @@ use App\Enums\AttendanceStatus;
 use App\Enums\EventStatus;
 use App\Models\Event;
 use App\Models\EventAttendance;
-use App\Models\EventOrganizer;
+use App\Models\EventCoOrganizer;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -27,7 +27,7 @@ class CoOrganizerAttendanceTest extends TestCase
             'event_date' => Carbon::yesterday(),
             'end_date' => Carbon::tomorrow(),
         ]);
-        EventOrganizer::factory()->accepted()->create(['event_id' => $event->id, 'user_id' => $coOrganizer->id]);
+        EventCoOrganizer::factory()->accepted()->create(['event_id' => $event->id, 'user_id' => $coOrganizer->id]);
         $attendance = EventAttendance::factory()->create([
             'event_id' => $event->id,
             'user_id' => $participant->id,
@@ -47,7 +47,7 @@ class CoOrganizerAttendanceTest extends TestCase
         $coOrganizer = User::factory()->create();
         $participant = User::factory()->create(['name' => '参加者サム']);
         $event = Event::factory()->create(['user_id' => $owner->id, 'status' => EventStatus::Published]);
-        EventOrganizer::factory()->accepted()->create(['event_id' => $event->id, 'user_id' => $coOrganizer->id]);
+        EventCoOrganizer::factory()->accepted()->create(['event_id' => $event->id, 'user_id' => $coOrganizer->id]);
         EventAttendance::factory()->create([
             'event_id' => $event->id,
             'user_id' => $participant->id,

@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Event;
-use App\Models\EventOrganizer;
+use App\Models\EventCoOrganizer;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -17,7 +17,7 @@ class OrganizerRemovalTest extends TestCase
         $owner = User::factory()->create();
         $coOrganizer = User::factory()->create();
         $event = Event::factory()->create(['user_id' => $owner->id]);
-        $organizer = EventOrganizer::factory()->accepted()->create([
+        $organizer = EventCoOrganizer::factory()->accepted()->create([
             'event_id' => $event->id,
             'user_id' => $coOrganizer->id,
         ]);
@@ -26,7 +26,7 @@ class OrganizerRemovalTest extends TestCase
             ->delete(route('events.organizers.destroy', [$event, $organizer]))
             ->assertRedirect(route('events.show', $event));
 
-        $this->assertDatabaseMissing('event_organizers', ['id' => $organizer->id]);
+        $this->assertDatabaseMissing('event_co_organizers', ['id' => $organizer->id]);
     }
 
     public function test_co_organizer_cannot_remove_others(): void
@@ -34,7 +34,7 @@ class OrganizerRemovalTest extends TestCase
         $owner = User::factory()->create();
         $coOrganizer = User::factory()->create();
         $event = Event::factory()->create(['user_id' => $owner->id]);
-        $organizer = EventOrganizer::factory()->accepted()->create([
+        $organizer = EventCoOrganizer::factory()->accepted()->create([
             'event_id' => $event->id,
             'user_id' => $coOrganizer->id,
         ]);
@@ -43,7 +43,7 @@ class OrganizerRemovalTest extends TestCase
             ->delete(route('events.organizers.destroy', [$event, $organizer]))
             ->assertForbidden();
 
-        $this->assertDatabaseHas('event_organizers', ['id' => $organizer->id]);
+        $this->assertDatabaseHas('event_co_organizers', ['id' => $organizer->id]);
     }
 
     public function test_cannot_remove_organizer_belonging_to_another_event(): void
@@ -51,7 +51,7 @@ class OrganizerRemovalTest extends TestCase
         $owner = User::factory()->create();
         $event = Event::factory()->create(['user_id' => $owner->id]);
         $otherEvent = Event::factory()->create(['user_id' => $owner->id]);
-        $organizer = EventOrganizer::factory()->accepted()->create(['event_id' => $otherEvent->id]);
+        $organizer = EventCoOrganizer::factory()->accepted()->create(['event_id' => $otherEvent->id]);
 
         $this->actingAs($owner)
             ->delete(route('events.organizers.destroy', [$event, $organizer]))

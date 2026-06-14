@@ -4,14 +4,14 @@ namespace Database\Factories;
 
 use App\Enums\OrganizerInvitationStatus;
 use App\Models\Event;
-use App\Models\EventOrganizer;
+use App\Models\EventCoOrganizer;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<EventOrganizer>
+ * @extends Factory<EventCoOrganizer>
  */
-class EventOrganizerFactory extends Factory
+class EventCoOrganizerFactory extends Factory
 {
     /**
      * @return array<string, mixed>

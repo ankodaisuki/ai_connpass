@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Enums\OrganizerInvitationStatus;
 use App\Mail\OrganizerInvitedMail;
 use App\Models\Event;
-use App\Models\EventOrganizer;
+use App\Models\EventCoOrganizer;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -27,7 +27,7 @@ class OrganizerInvitationTest extends TestCase
         ]);
 
         $response->assertRedirect();
-        $this->assertDatabaseHas('event_organizers', [
+        $this->assertDatabaseHas('event_co_organizers', [
             'event_id' => $event->id,
             'user_id' => $invitee->id,
             'status' => OrganizerInvitationStatus::Pending->value,
@@ -40,7 +40,7 @@ class OrganizerInvitationTest extends TestCase
         $owner = User::factory()->create();
         $coOrganizer = User::factory()->create();
         $event = Event::factory()->create(['user_id' => $owner->id]);
-        EventOrganizer::factory()->accepted()->create(['event_id' => $event->id, 'user_id' => $coOrganizer->id]);
+        EventCoOrganizer::factory()->accepted()->create(['event_id' => $event->id, 'user_id' => $coOrganizer->id]);
 
         $this->actingAs($coOrganizer)
             ->post(route('events.organizers.store', $event), ['email' => 'x@example.com'])
@@ -56,7 +56,7 @@ class OrganizerInvitationTest extends TestCase
             ->from(route('events.show', $event))
             ->post(route('events.organizers.store', $event), ['email' => 'nobody@example.com'])
             ->assertSessionHasErrors('email');
-        $this->assertDatabaseCount('event_organizers', 0);
+        $this->assertDatabaseCount('event_co_organizers', 0);
     }
 
     public function test_cannot_invite_the_owner_themselves(): void
@@ -68,7 +68,7 @@ class OrganizerInvitationTest extends TestCase
             ->from(route('events.show', $event))
             ->post(route('events.organizers.store', $event), ['email' => 'owner@example.com'])
             ->assertSessionHasErrors('email');
-        $this->assertDatabaseCount('event_organizers', 0);
+        $this->assertDatabaseCount('event_co_organizers', 0);
     }
 
     public function test_cannot_invite_pending_user_again(): void
@@ -77,13 +77,13 @@ class OrganizerInvitationTest extends TestCase
         $owner = User::factory()->create();
         $invitee = User::factory()->create(['email' => 'dup@example.com']);
         $event = Event::factory()->create(['user_id' => $owner->id]);
-        EventOrganizer::factory()->create(['event_id' => $event->id, 'user_id' => $invitee->id]);
+        EventCoOrganizer::factory()->create(['event_id' => $event->id, 'user_id' => $invitee->id]);
 
         $this->actingAs($owner)
             ->from(route('events.show', $event))
             ->post(route('events.organizers.store', $event), ['email' => 'dup@example.com'])
             ->assertSessionHasErrors('email');
-        $this->assertDatabaseCount('event_organizers', 1);
+        $this->assertDatabaseCount('event_co_organizers', 1);
     }
 
     public function test_cannot_invite_accepted_co_organizer(): void
@@ -92,7 +92,7 @@ class OrganizerInvitationTest extends TestCase
         $owner = User::factory()->create();
         $invitee = User::factory()->create(['email' => 'accepted@example.com']);
         $event = Event::factory()->create(['user_id' => $owner->id]);
-        EventOrganizer::factory()->accepted()->create(['event_id' => $event->id, 'user_id' => $invitee->id]);
+        EventCoOrganizer::factory()->accepted()->create(['event_id' => $event->id, 'user_id' => $invitee->id]);
 
         $this->actingAs($owner)
             ->from(route('events.show', $event))
@@ -106,18 +106,18 @@ class OrganizerInvitationTest extends TestCase
         $owner = User::factory()->create();
         $invitee = User::factory()->create(['email' => 'declined@example.com']);
         $event = Event::factory()->create(['user_id' => $owner->id]);
-        EventOrganizer::factory()->declined()->create(['event_id' => $event->id, 'user_id' => $invitee->id]);
+        EventCoOrganizer::factory()->declined()->create(['event_id' => $event->id, 'user_id' => $invitee->id]);
 
         $this->actingAs($owner)
             ->post(route('events.organizers.store', $event), ['email' => 'declined@example.com'])
             ->assertRedirect();
 
-        $this->assertDatabaseHas('event_organizers', [
+        $this->assertDatabaseHas('event_co_organizers', [
             'event_id' => $event->id,
             'user_id' => $invitee->id,
             'status' => OrganizerInvitationStatus::Pending->value,
         ]);
-        $this->assertDatabaseCount('event_organizers', 1);
+        $this->assertDatabaseCount('event_co_organizers', 1);
         Mail::assertSent(OrganizerInvitedMail::class);
     }
 }

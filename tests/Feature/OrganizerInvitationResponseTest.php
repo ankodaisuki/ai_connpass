@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\OrganizerInvitationStatus;
 use App\Models\Event;
-use App\Models\EventOrganizer;
+use App\Models\EventCoOrganizer;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -17,7 +17,7 @@ class OrganizerInvitationResponseTest extends TestCase
     {
         $invitee = User::factory()->create();
         $event = Event::factory()->create();
-        $invitation = EventOrganizer::factory()->create([
+        $invitation = EventCoOrganizer::factory()->create([
             'event_id' => $event->id,
             'user_id' => $invitee->id,
             'status' => OrganizerInvitationStatus::Pending,
@@ -35,7 +35,7 @@ class OrganizerInvitationResponseTest extends TestCase
     public function test_invitee_can_decline(): void
     {
         $invitee = User::factory()->create();
-        $invitation = EventOrganizer::factory()->create([
+        $invitation = EventCoOrganizer::factory()->create([
             'user_id' => $invitee->id,
             'status' => OrganizerInvitationStatus::Pending,
         ]);
@@ -51,7 +51,7 @@ class OrganizerInvitationResponseTest extends TestCase
     {
         $invitee = User::factory()->create();
         $stranger = User::factory()->create();
-        $invitation = EventOrganizer::factory()->create([
+        $invitation = EventCoOrganizer::factory()->create([
             'user_id' => $invitee->id,
             'status' => OrganizerInvitationStatus::Pending,
         ]);
@@ -66,7 +66,7 @@ class OrganizerInvitationResponseTest extends TestCase
     public function test_cannot_respond_to_already_resolved_invitation(): void
     {
         $invitee = User::factory()->create();
-        $invitation = EventOrganizer::factory()->accepted()->create(['user_id' => $invitee->id]);
+        $invitation = EventCoOrganizer::factory()->accepted()->create(['user_id' => $invitee->id]);
 
         $this->actingAs($invitee)
             ->patch(route('organizer-invitations.decline', $invitation))

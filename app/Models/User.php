@@ -71,10 +71,10 @@ class User extends Authenticatable
     /**
      * このユーザー宛ての合同主催の招待一覧
      *
-     * @return HasMany<EventOrganizer, $this>
+     * @return HasMany<EventCoOrganizer, $this>
      */
     public function organizerInvitations(): HasMany
     {
-        return $this->hasMany(EventOrganizer::class);
+        return $this->hasMany(EventCoOrganizer::class);
     }
 }

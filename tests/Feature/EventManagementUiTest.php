@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\EventStatus;
 use App\Models\Event;
-use App\Models\EventOrganizer;
+use App\Models\EventCoOrganizer;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -29,7 +29,7 @@ class EventManagementUiTest extends TestCase
         $owner = User::factory()->create();
         $coOrganizer = User::factory()->create();
         $event = Event::factory()->create(['user_id' => $owner->id, 'status' => EventStatus::Published]);
-        EventOrganizer::factory()->accepted()->create(['event_id' => $event->id, 'user_id' => $coOrganizer->id]);
+        EventCoOrganizer::factory()->accepted()->create(['event_id' => $event->id, 'user_id' => $coOrganizer->id]);
 
         $response = $this->actingAs($coOrganizer)->get(route('events.show', $event));
 
@@ -42,7 +42,7 @@ class EventManagementUiTest extends TestCase
         $owner = User::factory()->create();
         $coOrganizer = User::factory()->create();
         $event = Event::factory()->create(['user_id' => $owner->id, 'status' => EventStatus::Published]);
-        EventOrganizer::factory()->accepted()->create(['event_id' => $event->id, 'user_id' => $coOrganizer->id]);
+        EventCoOrganizer::factory()->accepted()->create(['event_id' => $event->id, 'user_id' => $coOrganizer->id]);
 
         $response = $this->actingAs($coOrganizer)->get(route('events.show', $event));
 

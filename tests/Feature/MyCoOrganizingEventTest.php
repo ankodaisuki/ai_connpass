@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Event;
-use App\Models\EventOrganizer;
+use App\Models\EventCoOrganizer;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -18,10 +18,10 @@ class MyCoOrganizingEventTest extends TestCase
         $owner = User::factory()->create();
 
         $accepted = Event::factory()->create(['user_id' => $owner->id, 'title' => 'accepted-event']);
-        EventOrganizer::factory()->accepted()->create(['event_id' => $accepted->id, 'user_id' => $me->id]);
+        EventCoOrganizer::factory()->accepted()->create(['event_id' => $accepted->id, 'user_id' => $me->id]);
 
         $pending = Event::factory()->create(['user_id' => $owner->id, 'title' => 'pending-event']);
-        EventOrganizer::factory()->create(['event_id' => $pending->id, 'user_id' => $me->id]);
+        EventCoOrganizer::factory()->create(['event_id' => $pending->id, 'user_id' => $me->id]);
 
         $response = $this->actingAs($me)->get(route('my.co-organizing-events'));
 
@@ -37,7 +37,7 @@ class MyCoOrganizingEventTest extends TestCase
         $owner = User::factory()->create();
 
         $event = Event::factory()->create(['user_id' => $owner->id, 'title' => 'others-event']);
-        EventOrganizer::factory()->accepted()->create(['event_id' => $event->id, 'user_id' => $other->id]);
+        EventCoOrganizer::factory()->accepted()->create(['event_id' => $event->id, 'user_id' => $other->id]);
 
         $this->actingAs($me)
             ->get(route('my.co-organizing-events'))

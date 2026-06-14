@@ -8,7 +8,7 @@ use App\Enums\UserStatus;
 use App\Mail\EventCancelledMail;
 use App\Models\Event;
 use App\Models\EventAttendance;
-use App\Models\EventOrganizer;
+use App\Models\EventCoOrganizer;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -26,12 +26,12 @@ class OwnerDeactivationTest extends TestCase
         $second = User::factory()->create();
         $event = Event::factory()->create(['user_id' => $owner->id, 'status' => EventStatus::Published]);
 
-        EventOrganizer::factory()->accepted()->create([
+        EventCoOrganizer::factory()->accepted()->create([
             'event_id' => $event->id,
             'user_id' => $first->id,
             'invited_at' => Carbon::parse('2026-06-01 10:00'),
         ]);
-        EventOrganizer::factory()->accepted()->create([
+        EventCoOrganizer::factory()->accepted()->create([
             'event_id' => $event->id,
             'user_id' => $second->id,
             'invited_at' => Carbon::parse('2026-06-05 10:00'),
@@ -40,7 +40,7 @@ class OwnerDeactivationTest extends TestCase
         $owner->update(['status' => UserStatus::Inactive]);
 
         $this->assertSame($first->id, $event->fresh()->user_id);
-        $this->assertDatabaseMissing('event_organizers', [
+        $this->assertDatabaseMissing('event_co_organizers', [
             'event_id' => $event->id,
             'user_id' => $first->id,
         ]);
@@ -53,7 +53,7 @@ class OwnerDeactivationTest extends TestCase
         $owner = User::factory()->create();
         $participant = User::factory()->create();
         $event = Event::factory()->create(['user_id' => $owner->id, 'status' => EventStatus::Published]);
-        EventOrganizer::factory()->create([
+        EventCoOrganizer::factory()->create([
             'event_id' => $event->id,
             'status' => OrganizerInvitationStatus::Pending,
         ]);

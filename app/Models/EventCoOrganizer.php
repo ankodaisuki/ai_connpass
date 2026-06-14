@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Enums\OrganizerInvitationStatus;
-use Database\Factories\EventOrganizerFactory;
+use Database\Factories\EventCoOrganizerFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,9 +16,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'invited_at',
     'responded_at',
 ])]
-class EventOrganizer extends Model
+class EventCoOrganizer extends Model
 {
-    /** @use HasFactory<EventOrganizerFactory> */
+    /** @use HasFactory<EventCoOrganizerFactory> */
     use HasFactory;
 
     /**

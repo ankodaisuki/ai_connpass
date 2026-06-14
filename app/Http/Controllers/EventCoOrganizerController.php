@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\OrganizerInvitationStatus;
 use App\Mail\OrganizerInvitedMail;
 use App\Models\Event;
-use App\Models\EventOrganizer;
+use App\Models\EventCoOrganizer;
 use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
-class EventOrganizerController extends Controller
+class EventCoOrganizerController extends Controller
 {
     use AuthorizesRequests;
 
@@ -44,7 +44,7 @@ class EventOrganizerController extends Controller
             ]);
         }
 
-        $existing = $event->eventOrganizers()->where('user_id', $invitee->id)->first();
+        $existing = $event->eventCoOrganizers()->where('user_id', $invitee->id)->first();
 
         if ($existing !== null) {
             if ($existing->status === OrganizerInvitationStatus::Pending) {
@@ -64,7 +64,7 @@ class EventOrganizerController extends Controller
                 'responded_at' => null,
             ]);
         } else {
-            $event->eventOrganizers()->create([
+            $event->eventCoOrganizers()->create([
                 'user_id' => $invitee->id,
                 'status' => OrganizerInvitationStatus::Pending,
                 'invited_at' => now(),
@@ -90,11 +90,11 @@ class EventOrganizerController extends Controller
     /**
      * 被招待者が招待を承諾する
      */
-    public function accept(EventOrganizer $eventOrganizer): RedirectResponse
+    public function accept(EventCoOrganizer $eventCoOrganizer): RedirectResponse
     {
-        $this->authorizeResponse($eventOrganizer);
+        $this->authorizeResponse($eventCoOrganizer);
 
-        $eventOrganizer->update([
+        $eventCoOrganizer->update([
             'status' => OrganizerInvitationStatus::Accepted,
             'responded_at' => now(),
         ]);
@@ -105,11 +105,11 @@ class EventOrganizerController extends Controller
     /**
      * 被招待者が招待を辞退する
      */
-    public function decline(EventOrganizer $eventOrganizer): RedirectResponse
+    public function decline(EventCoOrganizer $eventCoOrganizer): RedirectResponse
     {
-        $this->authorizeResponse($eventOrganizer);
+        $this->authorizeResponse($eventCoOrganizer);
 
-        $eventOrganizer->update([
+        $eventCoOrganizer->update([
             'status' => OrganizerInvitationStatus::Declined,
             'responded_at' => now(),
         ]);
@@ -120,11 +120,11 @@ class EventOrganizerController extends Controller
     /**
      * 合同主催者を除名する（招待レコードを削除）
      */
-    public function destroy(Event $event, EventOrganizer $eventOrganizer): RedirectResponse
+    public function destroy(Event $event, EventCoOrganizer $eventCoOrganizer): RedirectResponse
     {
         $this->authorize('removeOrganizer', $event);
 
-        $eventOrganizer->delete();
+        $eventCoOrganizer->delete();
 
         return redirect()->route('events.show', $event)->with('success', '合同主催者を外しました。');
     }
@@ -132,11 +132,11 @@ class EventOrganizerController extends Controller
     /**
      * 招待に応答できるのは「被招待者本人」かつ「Pending のまま」の場合のみ
      */
-    private function authorizeResponse(EventOrganizer $eventOrganizer): void
+    private function authorizeResponse(EventCoOrganizer $eventCoOrganizer): void
     {
         abort_unless(
-            $eventOrganizer->user_id === auth()->id()
-                && $eventOrganizer->status === OrganizerInvitationStatus::Pending,
+            $eventCoOrganizer->user_id === auth()->id()
+                && $eventCoOrganizer->status === OrganizerInvitationStatus::Pending,
             Response::HTTP_FORBIDDEN,
         );
     }
