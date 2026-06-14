@@ -13,26 +13,50 @@ use App\Models\User;
 class EventPolicy
 {
     /**
-     * 更新は作成者本人のみ許可
+     * 更新はオーナーまたは承諾済み合同主催者に許可
      */
     public function update(User $user, Event $event): bool
     {
-        return $user->id === $event->user_id;
+        return $event->isOrganizer($user);
     }
 
     /**
-     * 削除は作成者本人のみ許可
+     * 削除はオーナーのみ許可
      */
     public function delete(User $user, Event $event): bool
     {
-        return $user->id === $event->user_id;
+        return $event->isOwner($user);
     }
 
     /**
-     * 出欠記録は作成者本人のみ許可
+     * 出欠記録はオーナーまたは承諾済み合同主催者に許可
      */
     public function updateAttendance(User $user, Event $event): bool
     {
-        return $user->id === $event->user_id;
+        return $event->isOrganizer($user);
+    }
+
+    /**
+     * 合同主催者の招待はオーナーのみ許可
+     */
+    public function inviteOrganizer(User $user, Event $event): bool
+    {
+        return $event->isOwner($user);
+    }
+
+    /**
+     * 合同主催者の除名はオーナーのみ許可
+     */
+    public function removeOrganizer(User $user, Event $event): bool
+    {
+        return $event->isOwner($user);
+    }
+
+    /**
+     * オーナーの移譲はオーナーのみ許可
+     */
+    public function transferOwnership(User $user, Event $event): bool
+    {
+        return $event->isOwner($user);
     }
 }

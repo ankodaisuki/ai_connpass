@@ -67,4 +67,14 @@ class User extends Authenticatable
     {
         return $this->googleCalendarToken()->exists();
     }
+
+    /**
+     * このユーザー宛ての合同主催の招待一覧
+     *
+     * @return HasMany<EventCoOrganizer, $this>
+     */
+    public function organizerInvitations(): HasMany
+    {
+        return $this->hasMany(EventCoOrganizer::class);
+    }
 }

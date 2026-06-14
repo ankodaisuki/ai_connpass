@@ -6,17 +6,22 @@ use App\Enums\AttendanceStatus;
 use App\Enums\UserStatus;
 use App\Models\EventAttendance;
 use App\Models\User;
+use App\Services\EventOwnershipService;
 use App\Services\GoogleCalendarService;
 use Illuminate\Support\Facades\Log;
 
 class UserObserver
 {
-    public function __construct(private readonly GoogleCalendarService $googleCalendarService) {}
+    public function __construct(
+        private readonly GoogleCalendarService $googleCalendarService,
+        private readonly EventOwnershipService $eventOwnershipService,
+    ) {}
 
     public function updated(User $user): void
     {
         if ($user->wasChanged('status') && $user->status === UserStatus::Inactive) {
             $this->syncCalendarOnDeactivation($user);
+            $this->eventOwnershipService->handleOwnerDeactivation($user);
 
             $user->eventAttendances()
                 ->where('status', AttendanceStatus::Applied)

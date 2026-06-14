@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Feature\Google;
 
 use App\Enums\AttendanceStatus;
 use App\Enums\EventStatus;

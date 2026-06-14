@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Feature\Profile;
 
 use App\Enums\EventStatus;
 use App\Models\Event;

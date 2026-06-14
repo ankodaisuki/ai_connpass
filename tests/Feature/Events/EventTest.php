@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Feature\Events;
 
 use App\Enums\EventCategory;
 use App\Enums\EventStatus;

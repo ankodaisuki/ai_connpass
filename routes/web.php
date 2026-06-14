@@ -4,8 +4,12 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\EventAttendanceController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\EventCoOrganizerController;
+use App\Http\Controllers\EventOwnershipController;
 use App\Http\Controllers\GoogleCalendarConnectionController;
 use App\Http\Controllers\MyAttendanceController;
+use App\Http\Controllers\MyCoOrganizingEventController;
+use App\Http\Controllers\MyOrganizerInvitationController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,6 +29,13 @@ Route::middleware('auth')->group(function () {
     Route::delete('events/{event}/attendances', [EventAttendanceController::class, 'destroy'])->name('events.attendances.destroy');
     Route::patch('events/{event}/attendances/{attendance}', [EventAttendanceController::class, 'update'])->name('events.attendances.update');
     Route::get('events/{event}/attendances', fn ($event) => redirect()->route('events.show', $event));
+    Route::get('my/organizer-invitations', [MyOrganizerInvitationController::class, 'index'])->name('my.organizer-invitations');
+    Route::get('my/co-organizing-events', [MyCoOrganizingEventController::class, 'index'])->name('my.co-organizing-events');
+    Route::post('events/{event}/organizers', [EventCoOrganizerController::class, 'store'])->name('events.organizers.store');
+    Route::delete('events/{event}/organizers/{eventCoOrganizer}', [EventCoOrganizerController::class, 'destroy'])->scopeBindings()->name('events.organizers.destroy');
+    Route::patch('organizer-invitations/{eventCoOrganizer}/accept', [EventCoOrganizerController::class, 'accept'])->name('organizer-invitations.accept');
+    Route::patch('organizer-invitations/{eventCoOrganizer}/decline', [EventCoOrganizerController::class, 'decline'])->name('organizer-invitations.decline');
+    Route::patch('events/{event}/ownership', [EventOwnershipController::class, 'update'])->name('events.ownership.update');
     Route::get('google/connect', [GoogleCalendarConnectionController::class, 'connect'])->name('google.connect');
     Route::get('google/callback', [GoogleCalendarConnectionController::class, 'callback'])->name('google.callback');
     Route::delete('google/disconnect', [GoogleCalendarConnectionController::class, 'disconnect'])->name('google.disconnect');
