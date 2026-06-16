@@ -558,4 +558,73 @@
             </section>
         </div>
     @endcan
+
+    {{-- リマインドメール（オーナー＋承諾済み合同主催者） --}}
+    @can('sendReminder', $event)
+        <div class="mt-6">
+            <section class="rounded-2xl bg-white dark:bg-[#161615] border border-slate-200 dark:border-[#3E3E3A] p-6 sm:p-8 shadow-sm">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                    <span class="h-1 w-6 rounded-full bg-gradient-to-r {{ $style['gradient'] }}"></span>
+                    参加者へのリマインド
+                </h2>
+
+                <form method="POST" action="{{ route('events.reminders.store', $event) }}">
+                    @csrf
+                    <div class="mb-3">
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">件名</label>
+                        <input type="text" name="subject" required value="{{ old('subject') }}"
+                            class="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" />
+                        @error('subject')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div class="mb-3">
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">本文</label>
+                        <textarea name="body" required rows="5"
+                            class="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100">{{ old('body') }}</textarea>
+                        @error('body')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-500">宛先: 申込中の参加者 {{ $event->appliedAttendances()->count() }} 名</span>
+                        <button type="submit"
+                            class="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
+                            リマインドを送信
+                        </button>
+                    </div>
+                </form>
+
+                @php($reminders = $event->reminders()->latest()->get())
+                @if ($reminders->isNotEmpty())
+                    <div class="mt-6 border-t border-slate-200 dark:border-slate-700 pt-4">
+                        <h3 class="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-3">配信履歴</h3>
+                        @foreach ($reminders as $sentReminder)
+                            <div class="mb-3 text-sm">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-700 dark:text-slate-200">
+                                        {{ $sentReminder->created_at->format('m/d H:i') }}
+                                        「{{ Str::limit($sentReminder->subject, 30) }}」
+                                    </span>
+                                    <span class="text-xs text-slate-500">
+                                        成功 {{ $sentReminder->sent_count }} / 失敗 {{ $sentReminder->failed_count }}
+                                    </span>
+                                </div>
+                                @if ($sentReminder->failed_count > 0)
+                                    <form method="POST"
+                                        action="{{ route('events.reminders.resend', [$event, $sentReminder]) }}"
+                                        class="mt-1">
+                                        @csrf
+                                        <button type="submit" class="text-xs text-blue-600 hover:underline dark:text-blue-400">
+                                            失敗分を再送
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </section>
+        </div>
+    @endcan
 </x-app-layout>
