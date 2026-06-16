@@ -16,6 +16,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('status')->default(0);
             $table->text('error')->nullable();
             $table->timestamp('sent_at')->nullable();
+            $table->index(['event_reminder_id', 'status']);
             $table->timestamps();
         });
     }
