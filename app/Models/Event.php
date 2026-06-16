@@ -115,6 +115,16 @@ class Event extends Model
     }
 
     /**
+     * このイベントのリマインド配信ヘッダ一覧
+     *
+     * @return HasMany<EventReminder, $this>
+     */
+    public function reminders(): HasMany
+    {
+        return $this->hasMany(EventReminder::class);
+    }
+
+    /**
      * 指定ユーザーがこのイベントのオーナー（作成者）か
      */
     public function isOwner(User $user): bool
