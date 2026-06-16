@@ -47,14 +47,19 @@ class EventReminderService
             ->where('status', ReminderRecipientStatus::Failed)
             ->get();
 
-        $failedRecipients->each(function (EventReminderRecipient $recipient) {
-            $recipient->update([
-                'status' => ReminderRecipientStatus::Pending,
-                'error' => null,
-            ]);
-            SendEventReminderJob::dispatch($recipient);
+        DB::transaction(function () use ($reminder, $failedRecipients) {
+            $failedRecipients->each(function (EventReminderRecipient $recipient) {
+                $recipient->update([
+                    'status' => ReminderRecipientStatus::Pending,
+                    'error' => null,
+                ]);
+            });
+
+            $reminder->decrement('failed_count', $failedRecipients->count());
         });
 
-        $reminder->decrement('failed_count', $failedRecipients->count());
+        $failedRecipients->each(function (EventReminderRecipient $recipient) {
+            SendEventReminderJob::dispatch($recipient);
+        });
     }
 }
