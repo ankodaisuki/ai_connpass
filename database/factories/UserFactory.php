@@ -32,13 +32,25 @@ class UserFactory extends Factory
         ];
     }
 
-    /**
-     * 無効状態のユーザーを生成
-     */
     public function inactive(): static
     {
         return $this->state(fn (array $attributes) => [
             'status' => UserStatus::Inactive,
+        ]);
+    }
+
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_admin' => true,
+        ]);
+    }
+
+    public function frozen(string $reason = 'スパム行為のため'): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => UserStatus::Frozen,
+            'frozen_reason' => $reason,
         ]);
     }
 }

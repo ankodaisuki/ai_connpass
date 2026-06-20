@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['email', 'name', 'password', 'status'])]
+#[Fillable(['email', 'name', 'password', 'status', 'is_admin', 'frozen_reason'])]
 #[Hidden(['password'])]
 #[ObservedBy(UserObserver::class)]
 class User extends Authenticatable
@@ -32,7 +32,18 @@ class User extends Authenticatable
         return [
             'password' => 'hashed',
             'status' => UserStatus::class,
+            'is_admin' => 'boolean',
         ];
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->is_admin === true;
+    }
+
+    public function isFrozen(): bool
+    {
+        return $this->status === UserStatus::Frozen;
     }
 
     /**
