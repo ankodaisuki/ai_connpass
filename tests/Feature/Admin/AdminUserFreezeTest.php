@@ -92,4 +92,19 @@ class AdminUserFreezeTest extends TestCase
             ->post(route('admin.users.freeze', $target), ['reason' => 'スパム'])
             ->assertForbidden();
     }
+
+    public function test_frozen_user_is_logged_out_on_next_request(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->get(route('profile'))->assertOk();
+
+        $user->update(['status' => UserStatus::Frozen, 'frozen_reason' => '規約違反']);
+
+        $this->actingAs($user)
+            ->get(route('profile'))
+            ->assertRedirect(route('login'));
+
+        $this->assertGuest();
+    }
 }
