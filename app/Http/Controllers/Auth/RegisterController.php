@@ -19,12 +19,25 @@ class RegisterController extends Controller
 
     public function store(RegisterRequest $request): RedirectResponse
     {
-        $user = User::create([
-            'email' => $request->validated('email'),
-            'name' => $request->validated('name'),
-            'password' => $request->validated('password'),
-            'status' => UserStatus::Active,
-        ]);
+        $existing = User::where('email', $request->validated('email'))
+            ->where('status', UserStatus::Inactive)
+            ->first();
+
+        if ($existing !== null) {
+            $existing->update([
+                'name' => $request->validated('name'),
+                'password' => bcrypt($request->validated('password')),
+                'status' => UserStatus::Active,
+            ]);
+            $user = $existing;
+        } else {
+            $user = User::create([
+                'email' => $request->validated('email'),
+                'name' => $request->validated('name'),
+                'password' => $request->validated('password'),
+                'status' => UserStatus::Active,
+            ]);
+        }
 
         Auth::login($user);
 
