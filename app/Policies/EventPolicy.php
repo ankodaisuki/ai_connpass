@@ -59,4 +59,12 @@ class EventPolicy
     {
         return $event->isOwner($user);
     }
+
+    /**
+     * リマインド送信はオーナーまたは承諾済み合同主催者に許可
+     */
+    public function sendReminder(User $user, Event $event): bool
+    {
+        return $event->isOrganizer($user);
+    }
 }

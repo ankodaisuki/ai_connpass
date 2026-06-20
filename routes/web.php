@@ -6,6 +6,7 @@ use App\Http\Controllers\EventAttendanceController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventCoOrganizerController;
 use App\Http\Controllers\EventOwnershipController;
+use App\Http\Controllers\EventReminderController;
 use App\Http\Controllers\GoogleCalendarConnectionController;
 use App\Http\Controllers\MyAttendanceController;
 use App\Http\Controllers\MyCoOrganizingEventController;
@@ -36,6 +37,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('organizer-invitations/{eventCoOrganizer}/accept', [EventCoOrganizerController::class, 'accept'])->name('organizer-invitations.accept');
     Route::patch('organizer-invitations/{eventCoOrganizer}/decline', [EventCoOrganizerController::class, 'decline'])->name('organizer-invitations.decline');
     Route::patch('events/{event}/ownership', [EventOwnershipController::class, 'update'])->name('events.ownership.update');
+    Route::post('events/{event}/reminders', [EventReminderController::class, 'store'])->name('events.reminders.store');
+    Route::post('events/{event}/reminders/{reminder}/resend', [EventReminderController::class, 'resend'])->scopeBindings()->name('events.reminders.resend');
     Route::get('google/connect', [GoogleCalendarConnectionController::class, 'connect'])->name('google.connect');
     Route::get('google/callback', [GoogleCalendarConnectionController::class, 'callback'])->name('google.callback');
     Route::delete('google/disconnect', [GoogleCalendarConnectionController::class, 'disconnect'])->name('google.disconnect');
