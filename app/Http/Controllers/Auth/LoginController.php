@@ -38,12 +38,23 @@ class LoginController extends Controller
         /** @var User $user */
         $user = Auth::user();
 
+        if ($user->isFrozen()) {
+            Auth::logout();
+            $request->session()->invalidate();
+
+            $reason = $user->frozen_reason ? "（理由：{$user->frozen_reason}）" : '';
+
+            throw ValidationException::withMessages([
+                'email' => ["このアカウントは凍結されています。{$reason}"],
+            ]);
+        }
+
         if ($user->status !== UserStatus::Active) {
             Auth::logout();
             $request->session()->invalidate();
 
             throw ValidationException::withMessages([
-                'email' => ['アカウントが凍結されています。'],
+                'email' => ['このアカウントは利用できません。'],
             ]);
         }
 

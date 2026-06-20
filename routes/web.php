@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\EventController as AdminEventController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\EventAttendanceController;
@@ -45,6 +49,16 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::get('events/{event}', [EventController::class, 'show'])->name('events.show');
+
+Route::prefix('admin')->middleware(['auth', 'admin'])->name('admin.')->group(function () {
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('users', [AdminUserController::class, 'index'])->name('users.index');
+    Route::post('users/{user}/freeze', [AdminUserController::class, 'freeze'])->name('users.freeze');
+    Route::post('users/{user}/unfreeze', [AdminUserController::class, 'unfreeze'])->name('users.unfreeze');
+    Route::get('events', [AdminEventController::class, 'index'])->name('events.index');
+    Route::delete('events/{event}', [AdminEventController::class, 'destroy'])->name('events.destroy');
+    Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+});
 
 Route::middleware('auth')->post('logout', [LoginController::class, 'destroy'])->name('logout');
 
