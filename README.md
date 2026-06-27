@@ -77,15 +77,38 @@ bash setup-skills.sh
 
 ### 含まれるスキル
 
+- **laravel-best-practices** — Laravel コードのベストプラクティス・リファクタリング指針
 - **laravel-plugin-discovery** — LaraPlugins.io MCPでパッケージ検索・評価
 - **laravel-security** — 認証、検証、CSRF、セキュリティベストプラクティス
 - **laravel-tdd** — PHPUnit/Pestによる TDDワークフロー
 - **laravel-verification** — デプロイ前の検証ループ
+- **pest-testing** — Pest によるテスト記述・ブラウザテスト
+- **socialite-development** — Laravel Socialite による OAuth ソーシャルログイン
+- **tailwindcss-development** — Tailwind CSS のレイアウト・UIスタイリング
 - **api-design** — REST API設計パターン
 - **backend-patterns** — バックエンド開発パターン
 - **deployment-patterns** — デプロイ戦略・CI/CDパイプライン
 - **docker-patterns** — Dockerベストプラクティス
 - **e2e-testing** — Playwright E2Eテスト
+- **use-railway** — Railway へのデプロイ・環境変数・DB運用（※下記の追加セットアップが必要）
+
+### Railway スキルを使う場合の追加セットアップ
+
+`use-railway` スキルは「手順書」のみをリポジトリで配布しています。
+実際に Railway を操作するには、各自のマシンで **Railway MCP と CLI** を別途セットアップしてください
+（認証トークンを伴うため、リポジトリには同梱できません）。
+
+```bash
+# Railway CLI のインストール（未導入の場合）
+brew install railway          # macOS（Homebrew）
+# もしくは: bash <(curl -fsSL https://railway.com/install.sh)
+
+# MCP・スキル・認証をまとめてセットアップ
+railway setup agent
+```
+
+セットアップ後に未ログインの場合は `railway login` を実行してください。
+これで Claude Code から Railway の操作（デプロイ、ログ確認、環境変数設定など）が可能になります。
 
 ## Contributing
 
