@@ -174,4 +174,31 @@ class EventCoverImageTest extends TestCase
         $response->assertSee('enctype="multipart/form-data"', false);
         $response->assertSee('name="cover_image"', false);
     }
+
+    public function test_show_page_displays_cover_image_when_present(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user)->create([
+            'cover_image_path' => UploadedFile::fake()->image('c.jpg')->store('events/1', 'public'),
+            'status' => EventStatus::Published->value,
+        ]);
+
+        $response = $this->get(route('events.show', $event));
+        $response->assertOk();
+        $response->assertSee($event->cover_image_path, false);
+    }
+
+    public function test_show_page_displays_placeholder_when_absent(): void
+    {
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user)->create([
+            'cover_image_path' => null,
+            'status' => EventStatus::Published->value,
+        ]);
+
+        $response = $this->get(route('events.show', $event));
+        $response->assertOk();
+        $response->assertSee('event-placeholder.svg', false);
+    }
 }

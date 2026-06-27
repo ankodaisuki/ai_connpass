@@ -198,6 +198,10 @@
                         <!-- カードヘッダー（カテゴリーストライプ） -->
                         <div class="h-1.5 bg-gradient-to-r {{ $event->category === EventCategory::Frontend ? 'from-sky-400 to-blue-500' : '' }}{{ $event->category === EventCategory::Backend ? 'from-emerald-400 to-green-500' : '' }}{{ $event->category === EventCategory::Database ? 'from-amber-400 to-orange-500' : '' }}{{ $event->category === EventCategory::Mobile ? 'from-pink-400 to-rose-500' : '' }}{{ $event->category === EventCategory::Ai ? 'from-violet-400 to-purple-500' : '' }}{{ $event->category === EventCategory::Other ? 'from-slate-300 to-slate-400' : '' }}"></div>
 
+                        <img src="{{ $event->cover_image_path ? Storage::disk('public')->url($event->cover_image_path) : asset('images/event-placeholder.svg') }}"
+                             alt="{{ $event->title }} のカバー画像"
+                             class="w-full h-40 object-cover" />
+
                         <div class="flex flex-1 flex-col p-5">
                             <!-- バッジ群 -->
                             <div class="flex flex-wrap items-center gap-2 mb-3">
