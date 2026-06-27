@@ -100,13 +100,16 @@ class EventController extends Controller
     {
         $this->authorize('update', $event);
 
-        $data = collect($request->validated())->except('cover_image')->all();
+        $data = collect($request->validated())->except(['cover_image', 'remove_cover_image'])->all();
 
         if ($request->hasFile('cover_image')) {
             if ($event->cover_image_path !== null) {
                 Storage::disk('public')->delete($event->cover_image_path);
             }
             $data['cover_image_path'] = $request->file('cover_image')->store("events/{$event->id}", 'public');
+        } elseif ($request->boolean('remove_cover_image') && $event->cover_image_path !== null) {
+            Storage::disk('public')->delete($event->cover_image_path);
+            $data['cover_image_path'] = null;
         }
 
         $event->update($data);
