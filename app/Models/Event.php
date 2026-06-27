@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'user_id',
     'title',
     'description',
+    'cover_image_path',
     'category',
     'prefecture',
     'location',
