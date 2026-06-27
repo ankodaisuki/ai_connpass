@@ -264,10 +264,11 @@ class EventCoverImageTest extends TestCase
         $user = User::factory()->create();
         $event = Event::factory()->for($user)->create(['cover_image_path' => null]);
 
-        $this->actingAs($user)->put(route('events.update', $event), $this->validEventData([
+        $response = $this->actingAs($user)->put(route('events.update', $event), $this->validEventData([
             'remove_cover_image' => '1',
         ]));
 
+        $response->assertRedirect(route('events.show', $event));
         $this->assertNull($event->fresh()->cover_image_path);
     }
 
