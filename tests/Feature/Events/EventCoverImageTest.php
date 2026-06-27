@@ -102,4 +102,55 @@ class EventCoverImageTest extends TestCase
 
         $this->assertNull(Event::latest('id')->first()->cover_image_path);
     }
+
+    public function test_updating_cover_image_replaces_and_deletes_old_file(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user)->create([
+            'cover_image_path' => UploadedFile::fake()->image('old.jpg')->store('events/1', 'public'),
+        ]);
+        $oldPath = $event->cover_image_path;
+        Storage::disk('public')->assertExists($oldPath);
+
+        $response = $this->actingAs($user)->put(route('events.update', $event), $this->validEventData([
+            'cover_image' => UploadedFile::fake()->image('new.jpg', 800, 600),
+        ]));
+
+        $response->assertRedirect(route('events.show', $event));
+        $event->refresh();
+        $this->assertNotSame($oldPath, $event->cover_image_path);
+        Storage::disk('public')->assertExists($event->cover_image_path);
+        Storage::disk('public')->assertMissing($oldPath);
+    }
+
+    public function test_updating_without_new_image_keeps_existing(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user)->create([
+            'cover_image_path' => UploadedFile::fake()->image('keep.jpg')->store('events/1', 'public'),
+        ]);
+        $path = $event->cover_image_path;
+
+        $this->actingAs($user)->put(route('events.update', $event), $this->validEventData());
+
+        $this->assertSame($path, $event->fresh()->cover_image_path);
+        Storage::disk('public')->assertExists($path);
+    }
+
+    public function test_non_organizer_cannot_upload_cover_image(): void
+    {
+        Storage::fake('public');
+        $owner = User::factory()->create();
+        $stranger = User::factory()->create();
+        $event = Event::factory()->for($owner)->create();
+
+        $response = $this->actingAs($stranger)->put(route('events.update', $event), $this->validEventData([
+            'cover_image' => UploadedFile::fake()->image('x.jpg', 800, 600),
+        ]));
+
+        $response->assertForbidden();
+        $this->assertNull($event->fresh()->cover_image_path);
+    }
 }

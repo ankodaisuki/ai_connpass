@@ -16,6 +16,7 @@ use App\Services\EventService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 
 class EventController extends Controller
@@ -99,7 +100,16 @@ class EventController extends Controller
     {
         $this->authorize('update', $event);
 
-        $event->update($request->validated());
+        $data = collect($request->validated())->except('cover_image')->all();
+
+        if ($request->hasFile('cover_image')) {
+            if ($event->cover_image_path !== null) {
+                Storage::disk('public')->delete($event->cover_image_path);
+            }
+            $data['cover_image_path'] = $request->file('cover_image')->store("events/{$event->id}", 'public');
+        }
+
+        $event->update($data);
 
         return redirect()->route('events.show', $event)->with('success', 'イベントを更新しました。');
     }
