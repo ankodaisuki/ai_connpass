@@ -114,8 +114,8 @@ if ($request->hasFile('cover_image')) {
 
 ### destroy
 
-- イベント削除時に画像ファイルも削除する（孤立ファイルを残さない）
-- ※運営者削除（`AdminService::deleteEvent`）はソフトデリートのため画像は保持し、別途検討する旨をコメントで残す
+- `Event` は SoftDeletes のため、削除（論理削除）時は**画像ファイルを消さない**（復元時に画像参照が壊れるため）。`destroy` は既存の削除フロー（`EventCancellationService::cancel`）を変更しない。
+- 物理ファイルの掃除が必要になった場合は、将来の hard-delete 対応でまとめて扱う。運営者削除（`AdminService::deleteEvent`）も同様にソフトデリートのため画像は保持する。
 
 ### 権限
 

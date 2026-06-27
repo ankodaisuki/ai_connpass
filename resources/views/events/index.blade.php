@@ -200,6 +200,7 @@
 
                         <img src="{{ $event->cover_image_path ? Storage::disk('public')->url($event->cover_image_path) : asset('images/event-placeholder.svg') }}"
                              alt="{{ $event->title }} のカバー画像"
+                             loading="lazy"
                              class="w-full h-40 object-cover" />
 
                         <div class="flex flex-1 flex-col p-5">
