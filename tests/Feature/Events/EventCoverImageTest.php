@@ -270,4 +270,27 @@ class EventCoverImageTest extends TestCase
 
         $this->assertNull($event->fresh()->cover_image_path);
     }
+
+    public function test_edit_form_shows_remove_checkbox_when_image_exists(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user)->create([
+            'cover_image_path' => UploadedFile::fake()->image('c.jpg')->store('events/1', 'public'),
+        ]);
+
+        $response = $this->actingAs($user)->get(route('events.edit', $event));
+        $response->assertOk();
+        $response->assertSee('name="remove_cover_image"', false);
+    }
+
+    public function test_edit_form_hides_remove_checkbox_when_no_image(): void
+    {
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user)->create(['cover_image_path' => null]);
+
+        $response = $this->actingAs($user)->get(route('events.edit', $event));
+        $response->assertOk();
+        $response->assertDontSee('name="remove_cover_image"', false);
+    }
 }
