@@ -40,6 +40,13 @@ class UpdateEventRequest extends FormRequest
             'end_date' => ['required', 'date', 'after:event_date'],
             'capacity' => ['required', 'integer', 'min:1'],
             'status' => ['required', 'integer', Rule::enum(EventStatus::class)],
+            'cover_image' => [
+                'nullable',
+                'image',
+                'mimes:jpeg,png,webp',
+                'max:5120',
+                'dimensions:max_width=4000,max_height=4000',
+            ],
         ];
     }
 

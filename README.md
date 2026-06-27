@@ -56,6 +56,25 @@ bash setup-skills.sh
 このスクリプトは `skills/` ディレクトリを `.claude/skills/` にコピーします。
 コピー後、Claude Code はこれらのスキルを自動的に読み込みます。
 
+## 🐳 ローカル環境メモ（Sail / Docker）
+
+### 画像などのストレージ公開リンク（`storage:link`）
+
+アップロードした画像（イベントのカバー画像など）を表示するには、`public/storage` → `storage/app/public` のシンボリックリンクが必要です。**このリンクは必ず Sail コンテナ内で作成してください。**
+
+```bash
+./vendor/bin/sail artisan storage:link
+```
+
+> **⚠️ ホスト側で `php artisan storage:link` を実行しないこと。**
+> ホスト（macOS 等）で実行すると、ホストの絶対パスを指す symlink が作られ、アプリが動く Docker コンテナ内ではそのパスが解決できず、画像配信が 403 になります（症状: ファイルも DB も正常なのに詳細・一覧で画像が表示されない）。
+> 既に誤って作成した場合は、コンテナ内で削除して張り直します:
+> ```bash
+> ./vendor/bin/sail exec laravel.test sh -c 'rm -f public/storage && php artisan storage:link'
+> ```
+
+本番（Railway 等のコンテナ環境）でも同様に、**コンテナ起動時に `storage:link` を実行**する必要があります（起動スクリプトに含める）。
+
 ### 含まれるスキル
 
 - **laravel-plugin-discovery** — LaraPlugins.io MCPでパッケージ検索・評価

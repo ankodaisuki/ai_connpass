@@ -59,6 +59,13 @@
         @endcan
     </nav>
 
+    <!-- カバー画像 -->
+    <div class="mb-6 overflow-hidden rounded-2xl border border-slate-200 dark:border-[#3E3E3A]">
+        <img src="{{ $event->cover_image_path ? Storage::disk('public')->url($event->cover_image_path) : asset('images/event-placeholder.svg') }}"
+             alt="{{ $event->title }} のカバー画像"
+             class="w-full h-64 sm:h-80 object-cover" />
+    </div>
+
     <!-- ヒーロー（カテゴリーカラー帯） -->
     <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br {{ $style['gradient'] }} p-8 sm:p-10 mb-8 shadow-xl">
         <div class="absolute inset-0 bg-grid-white/10 [mask-image:radial-gradient(white,transparent_70%)]"></div>
