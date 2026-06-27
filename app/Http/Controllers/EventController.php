@@ -64,10 +64,16 @@ class EventController extends Controller
         $user = auth()->user();
 
         $event = Event::create([
-            ...$request->validated(),
+            ...collect($request->validated())->except('cover_image')->all(),
             'user_id' => $user->id,
             'status' => $request->integer('status', EventStatus::Draft->value),
         ]);
+
+        if ($request->hasFile('cover_image')) {
+            $event->update([
+                'cover_image_path' => $request->file('cover_image')->store("events/{$event->id}", 'public'),
+            ]);
+        }
 
         return redirect()->route('events.show', $event)->with('success', 'イベントを作成しました。');
     }

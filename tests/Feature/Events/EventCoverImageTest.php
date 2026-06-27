@@ -76,4 +76,30 @@ class EventCoverImageTest extends TestCase
 
         $response->assertSessionHasErrors('cover_image');
     }
+
+    public function test_event_can_be_created_with_cover_image(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('events.store'), $this->validEventData([
+            'cover_image' => UploadedFile::fake()->image('cover.jpg', 800, 600),
+        ]));
+
+        $event = Event::latest('id')->first();
+        $response->assertRedirect(route('events.show', $event));
+        $this->assertNotNull($event->cover_image_path);
+        Storage::disk('public')->assertExists($event->cover_image_path);
+        $this->assertStringStartsWith("events/{$event->id}/", $event->cover_image_path);
+    }
+
+    public function test_event_can_be_created_without_cover_image(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('events.store'), $this->validEventData());
+
+        $this->assertNull(Event::latest('id')->first()->cover_image_path);
+    }
 }
