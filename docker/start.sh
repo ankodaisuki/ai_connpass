@@ -19,6 +19,13 @@ fi
 chown www-data:www-data database/database.sqlite
 chmod 664 database/database.sqlite
 
+# 永続Volume（storage/app/public）をマウントしている場合、
+# Volumeはroot所有でマウントされるため www-data が書き込めるよう権限を付与する。
+# （Dockerfileのchownはビルド時のため、ランタイムでマウントされるVolumeには効かない）
+mkdir -p storage/app/public
+chown -R www-data:www-data storage/app/public
+chmod -R 775 storage/app/public
+
 # キャッシュをクリア（config:cache は外してランタイムで直接読む）
 php artisan optimize:clear
 
