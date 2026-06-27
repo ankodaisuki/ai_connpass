@@ -153,4 +153,25 @@ class EventCoverImageTest extends TestCase
         $response->assertForbidden();
         $this->assertNull($event->fresh()->cover_image_path);
     }
+
+    public function test_create_form_has_cover_image_input(): void
+    {
+        $user = User::factory()->create();
+        $response = $this->actingAs($user)->get(route('events.create'));
+
+        $response->assertOk();
+        $response->assertSee('enctype="multipart/form-data"', false);
+        $response->assertSee('name="cover_image"', false);
+    }
+
+    public function test_edit_form_has_cover_image_input(): void
+    {
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user)->create();
+        $response = $this->actingAs($user)->get(route('events.edit', $event));
+
+        $response->assertOk();
+        $response->assertSee('enctype="multipart/form-data"', false);
+        $response->assertSee('name="cover_image"', false);
+    }
 }

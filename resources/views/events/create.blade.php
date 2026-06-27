@@ -8,7 +8,7 @@
         </div>
 
         <div class="rounded-2xl bg-white dark:bg-[#161615] border border-slate-200 dark:border-[#3E3E3A] shadow-sm p-6 sm:p-8">
-            <form method="POST" action="{{ route('events.store') }}" class="space-y-5">
+            <form method="POST" action="{{ route('events.store') }}" enctype="multipart/form-data" class="space-y-5">
                 @csrf
 
                 <!-- タイトル -->
@@ -195,6 +195,23 @@
                         required
                     />
                     @error('capacity')
+                        <p class="text-red-500 text-sm mt-1.5">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- カバー画像 -->
+                <div>
+                    <label for="cover_image" class="block text-sm font-medium mb-1.5 text-slate-700 dark:text-slate-300">
+                        カバー画像 <span class="text-slate-400 font-normal text-xs">（任意・JPEG/PNG/WebP・5MBまで）</span>
+                    </label>
+                    <input
+                        type="file"
+                        id="cover_image"
+                        name="cover_image"
+                        accept="image/jpeg,image/png,image/webp"
+                        class="w-full text-sm text-slate-700 dark:text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 @error('cover_image') border-red-500 @enderror"
+                    />
+                    @error('cover_image')
                         <p class="text-red-500 text-sm mt-1.5">{{ $message }}</p>
                     @enderror
                 </div>
