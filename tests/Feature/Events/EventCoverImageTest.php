@@ -201,4 +201,97 @@ class EventCoverImageTest extends TestCase
         $response->assertOk();
         $response->assertSee('event-placeholder.svg', false);
     }
+
+    public function test_cover_image_can_be_removed(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user)->create([
+            'cover_image_path' => UploadedFile::fake()->image('c.jpg')->store('events/1', 'public'),
+        ]);
+        $path = $event->cover_image_path;
+        Storage::disk('public')->assertExists($path);
+
+        $response = $this->actingAs($user)->put(route('events.update', $event), $this->validEventData([
+            'remove_cover_image' => '1',
+        ]));
+
+        $response->assertRedirect(route('events.show', $event));
+        $this->assertNull($event->fresh()->cover_image_path);
+        Storage::disk('public')->assertMissing($path);
+    }
+
+    public function test_cover_image_is_kept_when_not_removing(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user)->create([
+            'cover_image_path' => UploadedFile::fake()->image('keep.jpg')->store('events/1', 'public'),
+        ]);
+        $path = $event->cover_image_path;
+
+        $this->actingAs($user)->put(route('events.update', $event), $this->validEventData());
+
+        $this->assertSame($path, $event->fresh()->cover_image_path);
+        Storage::disk('public')->assertExists($path);
+    }
+
+    public function test_new_upload_takes_precedence_over_remove(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user)->create([
+            'cover_image_path' => UploadedFile::fake()->image('old.jpg')->store('events/1', 'public'),
+        ]);
+        $oldPath = $event->cover_image_path;
+
+        $response = $this->actingAs($user)->put(route('events.update', $event), $this->validEventData([
+            'cover_image' => UploadedFile::fake()->image('new.jpg', 800, 600),
+            'remove_cover_image' => '1',
+        ]));
+
+        $response->assertRedirect(route('events.show', $event));
+        $event->refresh();
+        $this->assertNotNull($event->cover_image_path);
+        $this->assertNotSame($oldPath, $event->cover_image_path);
+        Storage::disk('public')->assertExists($event->cover_image_path);
+        Storage::disk('public')->assertMissing($oldPath);
+    }
+
+    public function test_removing_when_no_image_is_safe(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user)->create(['cover_image_path' => null]);
+
+        $response = $this->actingAs($user)->put(route('events.update', $event), $this->validEventData([
+            'remove_cover_image' => '1',
+        ]));
+
+        $response->assertRedirect(route('events.show', $event));
+        $this->assertNull($event->fresh()->cover_image_path);
+    }
+
+    public function test_edit_form_shows_remove_checkbox_when_image_exists(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user)->create([
+            'cover_image_path' => UploadedFile::fake()->image('c.jpg')->store('events/1', 'public'),
+        ]);
+
+        $response = $this->actingAs($user)->get(route('events.edit', $event));
+        $response->assertOk();
+        $response->assertSee('name="remove_cover_image"', false);
+    }
+
+    public function test_edit_form_hides_remove_checkbox_when_no_image(): void
+    {
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user)->create(['cover_image_path' => null]);
+
+        $response = $this->actingAs($user)->get(route('events.edit', $event));
+        $response->assertOk();
+        $response->assertDontSee('name="remove_cover_image"', false);
+    }
 }

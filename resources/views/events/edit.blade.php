@@ -214,6 +214,11 @@
                         <img src="{{ Storage::disk('public')->url($event->cover_image_path) }}"
                              alt="現在のカバー画像"
                              class="mb-2 h-32 w-auto rounded-lg object-cover border border-slate-200 dark:border-[#3E3E3A]" />
+                        <label class="mt-2 inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                            <input type="checkbox" name="remove_cover_image" value="1"
+                                   class="rounded border-slate-300 dark:border-[#3E3E3A] text-indigo-600 focus:ring-indigo-500">
+                            現在の画像を削除する
+                        </label>
                     @endif
                     <input
                         type="file"
