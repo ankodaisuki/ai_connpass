@@ -22,7 +22,7 @@ class MigrateCoverImagesToR2 extends Command
         $skipped = 0;
         $missing = 0;
 
-        Event::whereNotNull('cover_image_path')->each(function (Event $event) use ($source, $target, $dryRun, &$copied, &$skipped, &$missing): void {
+        Event::withTrashed()->whereNotNull('cover_image_path')->each(function (Event $event) use ($source, $target, $dryRun, &$copied, &$skipped, &$missing): void {
             $path = $event->cover_image_path;
 
             if ($target->exists($path)) {

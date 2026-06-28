@@ -62,4 +62,19 @@ class MigrateCoverImagesToR2Test extends TestCase
             ->expectsOutputToContain('コピー: 0')
             ->assertSuccessful();
     }
+
+    public function test_copies_images_of_soft_deleted_events(): void
+    {
+        Storage::fake('public');
+        Storage::fake('s3');
+        $event = Event::factory()->create([
+            'cover_image_path' => UploadedFile::fake()->image('c.jpg')->store('events/1', 'public'),
+        ]);
+        $path = $event->cover_image_path;
+        $event->delete();
+
+        $this->artisan('covers:migrate-to-r2')->assertSuccessful();
+
+        Storage::disk('s3')->assertExists($path);
+    }
 }
