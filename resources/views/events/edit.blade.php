@@ -211,7 +211,7 @@
                         カバー画像 <span class="text-slate-400 font-normal text-xs">（任意・JPEG/PNG/WebP・5MBまで）</span>
                     </label>
                     @if ($event->cover_image_path)
-                        <img src="{{ Storage::disk('public')->url($event->cover_image_path) }}"
+                        <img src="{{ $event->cover_image_url }}"
                              alt="現在のカバー画像"
                              class="mb-2 h-32 w-auto rounded-lg object-cover border border-slate-200 dark:border-[#3E3E3A]" />
                         <label class="mt-2 inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">

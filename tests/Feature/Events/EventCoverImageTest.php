@@ -295,6 +295,27 @@ class EventCoverImageTest extends TestCase
         $response->assertDontSee('name="remove_cover_image"', false);
     }
 
+    public function test_cover_image_url_returns_disk_url_when_present(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user)->create([
+            'cover_image_path' => UploadedFile::fake()->image('c.jpg')->store('events/1', 'public'),
+        ]);
+
+        $this->assertSame(
+            Storage::disk('public')->url($event->cover_image_path),
+            $event->cover_image_url,
+        );
+    }
+
+    public function test_cover_image_url_returns_placeholder_when_absent(): void
+    {
+        $event = Event::factory()->create(['cover_image_path' => null]);
+
+        $this->assertStringContainsString('event-placeholder.svg', $event->cover_image_url);
+    }
+
     public function test_cover_image_is_stored_on_configured_disk(): void
     {
         config(['filesystems.cover_disk' => 'r2test']);
