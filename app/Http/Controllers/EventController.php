@@ -72,7 +72,7 @@ class EventController extends Controller
 
         if ($request->hasFile('cover_image')) {
             $event->update([
-                'cover_image_path' => $request->file('cover_image')->store("events/{$event->id}", 'public'),
+                'cover_image_path' => $request->file('cover_image')->store("events/{$event->id}", config('filesystems.cover_disk')),
             ]);
         }
 
@@ -101,14 +101,15 @@ class EventController extends Controller
         $this->authorize('update', $event);
 
         $data = collect($request->validated())->except(['cover_image', 'remove_cover_image'])->all();
+        $disk = config('filesystems.cover_disk');
 
         if ($request->hasFile('cover_image')) {
             if ($event->cover_image_path !== null) {
-                Storage::disk('public')->delete($event->cover_image_path);
+                Storage::disk($disk)->delete($event->cover_image_path);
             }
-            $data['cover_image_path'] = $request->file('cover_image')->store("events/{$event->id}", 'public');
+            $data['cover_image_path'] = $request->file('cover_image')->store("events/{$event->id}", $disk);
         } elseif ($request->boolean('remove_cover_image') && $event->cover_image_path !== null) {
-            Storage::disk('public')->delete($event->cover_image_path);
+            Storage::disk($disk)->delete($event->cover_image_path);
             $data['cover_image_path'] = null;
         }
 

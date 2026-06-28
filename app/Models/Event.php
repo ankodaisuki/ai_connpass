@@ -8,12 +8,14 @@ use App\Enums\EventStatus;
 use App\Enums\OrganizerInvitationStatus;
 use Database\Factories\EventFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 #[Fillable([
     'user_id',
@@ -48,6 +50,20 @@ class Event extends Model
             'category' => EventCategory::class,
             'status' => EventStatus::class,
         ];
+    }
+
+    /**
+     * カバー画像の公開 URL。未設定時はプレースホルダを返す。
+     *
+     * @return Attribute<string, never>
+     */
+    protected function coverImageUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): string => $this->cover_image_path
+                ? Storage::disk(config('filesystems.cover_disk'))->url($this->cover_image_path)
+                : asset('images/event-placeholder.svg'),
+        );
     }
 
     /**
