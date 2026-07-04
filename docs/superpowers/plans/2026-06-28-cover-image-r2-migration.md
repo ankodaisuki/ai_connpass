@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - 設計書: `docs/superpowers/specs/2026-06-28-cover-image-r2-migration-design.md`
-- 関連 ADR: `docs/adr/v6/0004-event-cover-image.md`（表側仕様は不変、新規 ADR 不要）
+- 関連 ADR: 技術 `docs/adr/v6/technical/0004-cover-image-storage.md`（保存先ストレージの選定・移行/ロールバック記録）／ プロダクト `docs/adr/v6/product/0004-event-cover-image.md`（表側仕様は不変）
 - 利用者から見える動作（アップロード可・一覧/詳細で表示）は変えない。
 - DB スキーマ変更なし（`cover_image_path` の相対パスをそのまま使う）。
 - 保存先ディスク名は常に `config('filesystems.cover_disk')` 経由で取得する（直書き `'public'` を残さない）。ただし移行コマンドはソース=`public`・ターゲット=`s3` を明示する。
