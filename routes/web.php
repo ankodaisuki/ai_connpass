@@ -56,6 +56,8 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->name('admin.')->group(fun
     Route::post('users/{user}/freeze', [AdminUserController::class, 'freeze'])->name('users.freeze');
     Route::post('users/{user}/unfreeze', [AdminUserController::class, 'unfreeze'])->name('users.unfreeze');
     Route::get('events', [AdminEventController::class, 'index'])->name('events.index');
+    Route::get('events/trashed', [AdminEventController::class, 'trashed'])->name('events.trashed');
+    Route::patch('events/{id}/restore', [AdminEventController::class, 'restore'])->name('events.restore');
     Route::delete('events/{event}', [AdminEventController::class, 'destroy'])->name('events.destroy');
     Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
 });
