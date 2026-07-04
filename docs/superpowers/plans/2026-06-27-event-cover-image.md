@@ -4,11 +4,11 @@
 
 **Goal:** イベントにカバー画像1枚を任意でアップロードでき、一覧・詳細ページに表示する（未設定時はプレースホルダ）。
 
-**Architecture:** Laravel の Filesystem 抽象（`public` ディスク）で画像を保存し、`events.cover_image_path` にパスを保持する。バリデーション・保存ロジックはリクエストクラスとコントローラに集約。配信は `Storage::url()`。本番ストレージの選定は別途（ADR-0004 参照）。
+**Architecture:** Laravel の Filesystem 抽象（`public` ディスク）で画像を保存し、`events.cover_image_path` にパスを保持する。バリデーション・保存ロジックはリクエストクラスとコントローラに集約。配信は `Storage::url()`。本番ストレージの選定は別途（技術ADR `docs/adr/v6/technical/0004-cover-image-storage.md` 参照）。
 
 **Tech Stack:** Laravel 13 / PHP 8.4 / PHPUnit 12 / Tailwind CSS v4 / Playwright
 
-関連: ADR `docs/adr/v6/0004-event-cover-image.md`（Accepted）、設計書 `docs/superpowers/specs/2026-06-21-event-cover-image-design.md`
+関連: ADR `docs/adr/v6/product/0004-event-cover-image.md`（Accepted）、設計書 `docs/superpowers/specs/2026-06-21-event-cover-image-design.md`
 
 ## Global Constraints
 
@@ -747,5 +747,5 @@ git commit -m "test: カバー画像アップロードのE2Eテストを追加"
 
 ## デプロイ時の注意（本番・検証）
 
-- 本番/検証のストレージ選定は ADR-0004 のとおり別途決定（S3互換が推奨たたき台）。`FILESYSTEM_DISK` と認証情報を設定すればコード変更不要。
+- 本番/検証のストレージ選定は技術ADR `docs/adr/v6/technical/0004-cover-image-storage.md` のとおり別途決定（S3互換が推奨たたき台）。`FILESYSTEM_DISK` と認証情報を設定すればコード変更不要。
 - コンテナ起動時に `php artisan storage:link` を実行する必要がある（`public` ディスク利用時）。Dockerfile/起動スクリプトに追加する。
