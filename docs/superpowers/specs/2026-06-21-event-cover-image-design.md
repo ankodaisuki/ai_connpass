@@ -4,7 +4,7 @@
 
 イベントごとにカバー画像1枚をアップロードでき、一覧・詳細ページに表示する機能。表側仕様は ADR-0004（V6）で確定済み。本書は裏側の実装設計を定める。
 
-関連: `docs/adr/v6/0004-event-cover-image.md`
+関連: `docs/adr/v6/product/0004-event-cover-image.md`
 
 ## 確定済みの表側仕様（ADR より）
 

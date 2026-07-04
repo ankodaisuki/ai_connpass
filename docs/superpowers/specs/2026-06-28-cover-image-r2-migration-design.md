@@ -7,8 +7,9 @@
 移行完了後に Railway の Volume を撤去することで、「Volume 付きサービスは再デプロイ時に短いダウンタイムが発生する」という Railway の制約（[healthchecks ドキュメント](https://docs.railway.com/deployments/healthchecks)「Services with attached volumes」）が外れ、**ゼロダウンタイムリリースが有効化**される。
 
 関連:
-- ADR `docs/adr/v6/0004-event-cover-image.md`（「この決定を見直すとき（ストレージ構成の移行トリガーと代替案）」に R2 移行が代替案として記載済み）
-- **利用者から見える動作（画像をアップロードでき、一覧・詳細で表示される）は変わらない**ため、新規 ADR は作成しない（ADR-0004 自身が「保存先切替は表側仕様に波及しない」と明記）。
+- 技術 ADR `docs/adr/v6/technical/0004-cover-image-storage.md`（保存先ストレージの選定・移行トリガー・R2 移行記録。本移行はここに記録済み）
+- プロダクト ADR `docs/adr/v6/product/0004-event-cover-image.md`（表側仕様）
+- **利用者から見える動作（画像をアップロードでき、一覧・詳細で表示される）は変わらない**ため、プロダクト ADR の改訂は不要（保存先切替は表側仕様に波及しない）。
 
 ## 目的（ゴール）
 

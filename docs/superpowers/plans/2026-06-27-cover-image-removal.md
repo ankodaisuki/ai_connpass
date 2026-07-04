@@ -8,7 +8,7 @@
 
 **Tech Stack:** Laravel 13 / PHP 8.4 / PHPUnit 12 / Tailwind CSS v4
 
-関連: 設計書 `docs/superpowers/specs/2026-06-27-cover-image-removal-design.md`、ADR `docs/adr/v6/0004-event-cover-image.md`
+関連: 設計書 `docs/superpowers/specs/2026-06-27-cover-image-removal-design.md`、ADR `docs/adr/v6/product/0004-event-cover-image.md`
 
 ## Global Constraints
 
