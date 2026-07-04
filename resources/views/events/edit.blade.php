@@ -20,6 +20,7 @@
             <form method="POST" action="{{ route('events.update', $event) }}" enctype="multipart/form-data" class="space-y-5">
                 @csrf
                 @method('PUT')
+                <input type="hidden" name="expected_updated_at" value="{{ $event->updated_at->timestamp }}">
 
                 <!-- タイトル -->
                 <div>

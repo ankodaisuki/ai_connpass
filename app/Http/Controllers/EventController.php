@@ -17,6 +17,7 @@ use App\Services\EventService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
 class EventController extends Controller
@@ -97,7 +98,15 @@ class EventController extends Controller
     {
         $this->authorize('update', $event);
 
-        $otherData = collect($request->validated())->except(['cover_image', 'remove_cover_image'])->all();
+        // 楽観ロック: 編集画面を開いた時点から他者が更新していたら弾く
+        $expected = $request->integer('expected_updated_at');
+        if ($expected !== 0 && $expected !== $event->updated_at->timestamp) {
+            throw ValidationException::withMessages([
+                'expected_updated_at' => '他の人がこのイベントを更新しました。最新の内容を確認してから保存してください。',
+            ]);
+        }
+
+        $otherData = collect($request->validated())->except(['cover_image', 'remove_cover_image', 'expected_updated_at'])->all();
 
         $coverImages->updateCover(
             $event,
