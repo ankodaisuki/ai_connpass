@@ -11,12 +11,12 @@ use App\Http\Requests\Event\UpdateEventRequest;
 use App\Models\Event;
 use App\Models\EventAttendance;
 use App\Models\User;
+use App\Services\CoverImageService;
 use App\Services\EventCancellationService;
 use App\Services\EventService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 
 class EventController extends Controller
@@ -59,22 +59,19 @@ class EventController extends Controller
     /**
      * イベント保存
      */
-    public function store(StoreEventRequest $request): RedirectResponse
+    public function store(StoreEventRequest $request, CoverImageService $coverImages): RedirectResponse
     {
         /** @var User $user */
         $user = auth()->user();
 
-        $event = Event::create([
-            ...collect($request->validated())->except('cover_image')->all(),
-            'user_id' => $user->id,
-            'status' => $request->integer('status', EventStatus::Draft->value),
-        ]);
-
-        if ($request->hasFile('cover_image')) {
-            $event->update([
-                'cover_image_path' => $request->file('cover_image')->store("events/{$event->id}", config('filesystems.cover_disk')),
-            ]);
-        }
+        $event = $coverImages->createWithCover(
+            [
+                ...collect($request->validated())->except('cover_image')->all(),
+                'user_id' => $user->id,
+                'status' => $request->integer('status', EventStatus::Draft->value),
+            ],
+            $request->file('cover_image'),
+        );
 
         return redirect()->route('events.show', $event)->with('success', 'イベントを作成しました。');
     }
@@ -96,24 +93,18 @@ class EventController extends Controller
     /**
      * イベント更新
      */
-    public function update(UpdateEventRequest $request, Event $event): RedirectResponse
+    public function update(UpdateEventRequest $request, Event $event, CoverImageService $coverImages): RedirectResponse
     {
         $this->authorize('update', $event);
 
-        $data = collect($request->validated())->except(['cover_image', 'remove_cover_image'])->all();
-        $disk = config('filesystems.cover_disk');
+        $otherData = collect($request->validated())->except(['cover_image', 'remove_cover_image'])->all();
 
-        if ($request->hasFile('cover_image')) {
-            if ($event->cover_image_path !== null) {
-                Storage::disk($disk)->delete($event->cover_image_path);
-            }
-            $data['cover_image_path'] = $request->file('cover_image')->store("events/{$event->id}", $disk);
-        } elseif ($request->boolean('remove_cover_image') && $event->cover_image_path !== null) {
-            Storage::disk($disk)->delete($event->cover_image_path);
-            $data['cover_image_path'] = null;
-        }
-
-        $event->update($data);
+        $coverImages->updateCover(
+            $event,
+            $otherData,
+            $request->file('cover_image'),
+            $request->boolean('remove_cover_image'),
+        );
 
         return redirect()->route('events.show', $event)->with('success', 'イベントを更新しました。');
     }
