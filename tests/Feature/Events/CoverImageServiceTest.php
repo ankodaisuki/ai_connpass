@@ -121,4 +121,40 @@ class CoverImageServiceTest extends TestCase
         $this->assertNull($event->cover_image_path);
         $this->assertDatabaseHas('events', ['id' => $event->id]);
     }
+
+    // #5: 画像なしのイベントに、編集で画像を新規追加する（N→I）
+    public function test_adding_image_to_event_without_one(): void
+    {
+        Storage::fake('public');
+        $event = Event::factory()->create(['cover_image_path' => null]);
+
+        $this->service()->updateCover($event, ['title' => '画像追加'], UploadedFile::fake()->image('add.jpg'), false);
+
+        $event->refresh();
+        $this->assertNotNull($event->cover_image_path);
+        Storage::disk('public')->assertExists($event->cover_image_path);
+        $this->assertSame('画像追加', $event->title);
+    }
+
+    // #3: 作成時にアップロードが失敗したら、イベント行もファイルも残さない（部分成功・孤児を作らない）
+    public function test_create_failure_persists_no_event_and_no_orphan(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create();
+
+        $throwing = \Mockery::mock(Storage::disk('public'))->makePartial();
+        $throwing->shouldReceive('putFileAs')->andThrow(new \RuntimeException('upload failed'));
+        Storage::shouldReceive('disk')->andReturn($throwing);
+
+        $countBefore = Event::count();
+
+        try {
+            $this->service()->createWithCover($this->validData($user), UploadedFile::fake()->image('c.jpg'));
+            $this->fail('例外が送出されるはず');
+        } catch (\Throwable $e) {
+            // 期待通り
+        }
+
+        $this->assertSame($countBefore, Event::count()); // イベント行はロールバックされ残らない
+    }
 }

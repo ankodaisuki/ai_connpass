@@ -165,3 +165,38 @@
 | ② 何もしない（現状） | — | 実装ゼロ | 孤児が蓄積し続ける |
 
 **推奨＝①**（低頻度のスケジュール実行）
+
+---
+
+## 状態遷移マトリクス（テスト網羅の確認）
+
+> レビュー指摘を受けて追加。箇条書きだと「漏れ」が見えにくいため、**処理 × 画像状態を機械的に全網羅（MECE）**し、各セルが**テストコードに反映されているか**を突き合わせる。ドキュメントの体裁より「洗い出した結果がテストにあるか」が本質。
+>
+> 状態: 画像 **なし=N** / **あり=I**。**公開状態（Draft/Published）は画像挙動に直交**（同一コード経路）で、既存テストは `status=Published` 既定で編集系（#7・#9 等）を実行済み。
+
+| # | 操作 | 前 | 入力 | 期待（DB path / ファイル） | 対応テスト |
+|---|---|---|---|---|---|
+| 1 | 作成 | − | 画像なし | null / − | `test_event_can_be_created_without_cover_image` ほか |
+| 2 | 作成 | − | 画像あり | 新path / 保存 | `test_event_can_be_created_with_cover_image` ほか |
+| 3 | 作成 | − | 画像あり・**アップ失敗** | 行なし / 孤児なし | `test_create_failure_persists_no_event_and_no_orphan` |
+| 4 | 作成 | − | 不正形式/サイズ/寸法 | 弾く / なし | `test_non_image_file_is_rejected` ほか2件 |
+| 5 | 編集 | N | **画像追加** | 新path / 保存 | `test_adding_image_to_event_without_one` |
+| 6 | 編集 | I | 変更なし | 旧path維持 / 維持 | `test_updating_without_new_image_keeps_existing` ほか |
+| 7 | 編集 | I | 上書き（新画像） | 新path / 旧削除・新保存 | `test_updating_cover_image_replaces_and_deletes_old_file` ほか |
+| 8 | 編集 | I | 上書き・**アップ失敗** | 旧path維持 / 旧維持 | `test_old_image_survives_when_new_upload_fails` |
+| 9 | 編集 | I | 削除(remove) | null / 旧削除 | `test_cover_image_can_be_removed` ほか |
+| 10 | 編集 | N | 削除(remove) | null / なし（安全） | `test_removing_when_no_image_is_safe` |
+| 11 | 編集 | I | 新画像+削除 同時 | 新優先 / 旧削除・新保存 | `test_new_upload_takes_precedence_over_remove` |
+| 12 | 編集 | I | 削除(remove)・**DB失敗** | 旧path維持 / 旧維持 | 未テスト（**設計上安全**: ファイル削除はコミット後のため、DB失敗時は旧ファイルが残る） |
+| 13 | 編集 | 権限なし | 上書き | 変化なし / 403 | `test_non_organizer_cannot_upload_cover_image` |
+| 14 | ソフト削除 | I | − | path維持 / 維持 | `test_soft_delete_keeps_image_but_force_delete_removes_it` |
+| 15 | 物理削除 | I | − | 行削除 / **ファイル削除** | 同上 |
+| 16 | 復元 | I(trashed) | − | 復活 / **画像維持** | `test_restore_keeps_the_cover_image_file` |
+| 17 | 孤児回収 | − | 未参照・古/参照/新/dry-run | 該当のみ削除 | `PruneOrphanCoverImagesTest`（2件） |
+| 18 | 配信 | I/N | 表示 | URL生成 / プレースホルダ | `test_cover_image_url_*`, show系 |
+| 19 | 保存先 | − | ディスク設定 | 設定ディスクに保存 | `test_cover_image_is_stored_on_configured_disk` |
+| 20 | 同時編集 | I/N | 楽観ロック | 古い版は拒否 | `EventOptimisticLockTest`（2件） |
+
+**特殊系（ファイルが消えるべきセル）:** #7（上書き→旧削除）・#9（あり→なしで旧削除）・#11（同時指定でも旧削除）・#15（物理削除でファイル削除）。いずれもテストで旧ファイルの `assertMissing` を検証済み。
+
+**未テストのセル:** #12 のみ。新ファイルを上げない削除操作で、ファイル削除をコミット後に行う構造上、DB失敗時は旧ファイルが必ず残る（＝壊れない）ため、設計上安全と判断し注記に留める。
