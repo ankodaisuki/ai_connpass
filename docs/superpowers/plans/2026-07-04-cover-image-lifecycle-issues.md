@@ -170,33 +170,44 @@
 
 ## 状態遷移マトリクス（テスト網羅の確認）
 
-> レビュー指摘を受けて追加。箇条書きだと「漏れ」が見えにくいため、**処理 × 画像状態を機械的に全網羅（MECE）**し、各セルが**テストコードに反映されているか**を突き合わせる。ドキュメントの体裁より「洗い出した結果がテストにあるか」が本質。
->
-> 状態: 画像 **なし=N** / **あり=I**。**公開状態（Draft/Published）は画像挙動に直交**（同一コード経路）で、既存テストは `status=Published` 既定で編集系（#7・#9 等）を実行済み。
+**画面から操作でき、利用者に見える範囲**の各操作（作成・編集・削除・復元 など）× 画像状態について、期待結果と対応テストを一覧化したもの。物理削除・孤児回収バッチ・保存先ディスクなど、画面に現れない裏側処理は対象外（テスト自体は存在する）。
 
-| # | 操作 | 前 | 入力 | 期待（DB path / ファイル） | 対応テスト |
-|---|---|---|---|---|---|
-| 1 | 作成 | − | 画像なし | null / − | `test_event_can_be_created_without_cover_image` ほか |
-| 2 | 作成 | − | 画像あり | 新path / 保存 | `test_event_can_be_created_with_cover_image` ほか |
-| 3 | 作成 | − | 画像あり・**アップ失敗** | 行なし / 孤児なし | `test_create_failure_persists_no_event_and_no_orphan` |
-| 4 | 作成 | − | 不正形式/サイズ/寸法 | 弾く / なし | `test_non_image_file_is_rejected` ほか2件 |
-| 5 | 編集 | N | **画像追加** | 新path / 保存 | `test_adding_image_to_event_without_one` |
-| 6 | 編集 | I | 変更なし | 旧path維持 / 維持 | `test_updating_without_new_image_keeps_existing` ほか |
-| 7 | 編集 | I | 上書き（新画像） | 新path / 旧削除・新保存 | `test_updating_cover_image_replaces_and_deletes_old_file` ほか |
-| 8 | 編集 | I | 上書き・**アップ失敗** | 旧path維持 / 旧維持 | `test_old_image_survives_when_new_upload_fails` |
-| 9 | 編集 | I | 削除(remove) | null / 旧削除 | `test_cover_image_can_be_removed` ほか |
-| 10 | 編集 | N | 削除(remove) | null / なし（安全） | `test_removing_when_no_image_is_safe` |
-| 11 | 編集 | I | 新画像+削除 同時 | 新優先 / 旧削除・新保存 | `test_new_upload_takes_precedence_over_remove` |
-| 12 | 編集 | I | 削除(remove)・**DB失敗** | 旧path維持 / 旧維持 | 未テスト（**設計上安全**: ファイル削除はコミット後のため、DB失敗時は旧ファイルが残る） |
-| 13 | 編集 | 権限なし | 上書き | 変化なし / 403 | `test_non_organizer_cannot_upload_cover_image` |
-| 14 | ソフト削除 | I | − | path維持 / 維持 | `test_soft_delete_keeps_image_but_force_delete_removes_it` |
-| 15 | 物理削除 | I | − | 行削除 / **ファイル削除** | 同上 |
-| 16 | 復元 | I(trashed) | − | 復活 / **画像維持** | `test_restore_keeps_the_cover_image_file` |
-| 17 | 孤児回収 | − | 未参照・古/参照/新/dry-run | 該当のみ削除 | `PruneOrphanCoverImagesTest`（2件） |
-| 18 | 配信 | I/N | 表示 | URL生成 / プレースホルダ | `test_cover_image_url_*`, show系 |
-| 19 | 保存先 | − | ディスク設定 | 設定ディスクに保存 | `test_cover_image_is_stored_on_configured_disk` |
-| 20 | 同時編集 | I/N | 楽観ロック | 古い版は拒否 | `EventOptimisticLockTest`（2件） |
+期待結果は**表側（画面表示）**と**裏側（DB・ファイル）**に分けて記す。
 
-**特殊系（ファイルが消えるべきセル）:** #7（上書き→旧削除）・#9（あり→なしで旧削除）・#11（同時指定でも旧削除）・#15（物理削除でファイル削除）。いずれもテストで旧ファイルの `assertMissing` を検証済み。
+**公開状態（Draft/Published）は画像挙動に直交**（同一コード経路）。編集系（#5〜#9 等）は Published 既定で実行し、**下書きイベントの編集（画像追加→削除）も明示的に検証済み**（`test_draft_event_image_add_then_remove_keeps_draft`）。
+
+| # | 操作 | 操作前の画像 | 入力 | 画面表示（表側） | DB `cover_image_path`（裏側） | ファイル（裏側） | 対応テスト |
+|---|---|---|---|---|---|---|---|
+| 1 | 作成 | 新規 | 画像なし | プレースホルダ表示 | null | − | `test_event_can_be_created_without_cover_image` ほか |
+| 2 | 作成 | 新規 | 画像あり | カバー画像が表示 | 新path | 保存 | `test_event_can_be_created_with_cover_image` ほか |
+| 3 | 作成 | 新規 | 画像あり・**アップ失敗** | イベントは作成されない（エラー） | 行なし | 孤児なし（掃除） | `test_create_failure_persists_no_event_and_no_orphan` |
+| 4 | 作成 | 新規 | 不正形式/サイズ/寸法 | バリデーションエラー | 行なし | なし | `test_non_image_file_is_rejected` ほか2件 |
+| 5 | 編集 | なし | **画像追加** | アップロードした画像が表示される | 新path | 保存 | `test_adding_image_to_event_without_one` |
+| 6 | 編集 | あり | 変更なし | 画像そのまま表示 | 旧path維持 | 維持 | `test_updating_without_new_image_keeps_existing` ほか |
+| 7 | 編集 | あり | 上書き（新画像） | 新しい画像が表示 | 新path | 旧削除・新保存 | `test_updating_cover_image_replaces_and_deletes_old_file` ほか |
+| 8 | 編集 | あり | 上書き・**アップ失敗** | 旧画像のまま表示（エラー） | 旧path維持 | 旧維持 | `test_old_image_survives_when_new_upload_fails` |
+| 9 | 編集 | あり | 削除(remove) | プレースホルダ表示に戻る | null | 旧削除 | `test_cover_image_can_be_removed` ほか |
+| 10 | 編集 | なし | 削除(remove) ※通常UIでは不可 | プレースホルダのまま | null | なし（安全） | `test_removing_when_no_image_is_safe` |
+| 11 | 編集 | あり | 新画像+削除 同時 | 新しい画像が表示（新優先） | 新path | 旧削除・新保存 | `test_new_upload_takes_precedence_over_remove` |
+| 12 | 編集 | あり | 削除(remove)・**DB失敗** | 旧画像のまま表示（エラー） | 旧path維持 | 旧維持 | 未テスト（**設計上安全**: ファイル削除はコミット後のため、DB失敗時は旧ファイルが残る） |
+| 13 | 編集 | 権限なし | 上書き | 操作不可（403） | 変化なし | 変化なし | `test_non_organizer_cannot_upload_cover_image` |
+| 14 | ソフト削除 | あり | − | 一覧から消える | path維持（`deleted_at`） | 維持 | `test_soft_delete_keeps_image_but_force_delete_removes_it` |
+| 15 | 復元 | あり | − | 非公開で復活・画像も表示可 | path維持（`deleted_at`解除） | 維持 | `test_restore_keeps_the_cover_image_file` |
+| 16 | 同時編集 | あり・なし | 楽観ロック | 「他の人が更新しました」表示 | 変化なし（拒否） | 変化なし | `EventOptimisticLockTest`（2件） |
+
+**特殊系（ファイルが消えるべきセル）:** #7（上書き→旧削除）・#9（あり→なしで旧削除）・#11（同時指定でも旧削除）。いずれもテストで旧ファイルの `assertMissing` を検証済み。
 
 **未テストのセル:** #12 のみ。新ファイルを上げない削除操作で、ファイル削除をコミット後に行う構造上、DB失敗時は旧ファイルが必ず残る（＝壊れない）ため、設計上安全と判断し注記に留める。
+
+### 対応テストファイル
+
+いずれも `tests/Feature/` 配下（ブランチ `feature/cover-image-lifecycle-fixes`）。
+
+| ファイル | パス | 主な内容（マトリクスの対応） |
+|---|---|---|
+| CoverImageServiceTest | `tests/Feature/Events/CoverImageServiceTest.php` | 作成/差し替え/削除の安全化、アップ失敗時の旧画像維持・孤児防止（#2,3,5,7,8,9） |
+| EventCoverImageTest | `tests/Feature/Events/EventCoverImageTest.php` | HTTP経路の作成/編集/削除、バリデーション、権限（#1,2,4,6,7,9,10,11,13）。表示（配信）テストも含む（表外） |
+| RestoreEventTest | `tests/Feature/Admin/RestoreEventTest.php` | 管理者による復元、復元で画像維持（#15） |
+| EventOptimisticLockTest | `tests/Feature/Events/EventOptimisticLockTest.php` | 楽観ロック＝同時編集の上書き防止（#16） |
+| EventCoverImageCleanupTest | `tests/Feature/Events/EventCoverImageCleanupTest.php` | ソフト削除は画像維持（#14）／物理削除でファイル削除（表外・裏側） |
+| PruneOrphanCoverImagesTest | `tests/Feature/Console/PruneOrphanCoverImagesTest.php` | 孤児ファイル回収バッチ（表外・裏側） |

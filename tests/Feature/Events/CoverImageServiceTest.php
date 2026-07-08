@@ -122,7 +122,7 @@ class CoverImageServiceTest extends TestCase
         $this->assertDatabaseHas('events', ['id' => $event->id]);
     }
 
-    // #5: 画像なしのイベントに、編集で画像を新規追加する（N→I）
+    // #5: 画像なしのイベントに、編集で画像を新規追加する（なし→あり）
     public function test_adding_image_to_event_without_one(): void
     {
         Storage::fake('public');
@@ -156,5 +156,27 @@ class CoverImageServiceTest extends TestCase
         }
 
         $this->assertSame($countBefore, Event::count()); // イベント行はロールバックされ残らない
+    }
+
+    // #5/#9 の下書き版: 下書きのまま画像を追加→削除でき、status は Draft を維持する
+    public function test_draft_event_image_add_then_remove_keeps_draft(): void
+    {
+        Storage::fake('public');
+        $event = Event::factory()->create(['status' => EventStatus::Draft, 'cover_image_path' => null]);
+
+        // 下書きのまま画像を追加
+        $this->service()->updateCover($event, ['title' => '下書き編集'], UploadedFile::fake()->image('add.jpg'), false);
+        $event->refresh();
+        $added = $event->cover_image_path;
+        $this->assertNotNull($added);
+        Storage::disk('public')->assertExists($added);
+        $this->assertSame(EventStatus::Draft, $event->status);
+
+        // 下書きのまま画像を削除
+        $this->service()->updateCover($event, ['title' => '下書き編集2'], null, true);
+        $event->refresh();
+        $this->assertNull($event->cover_image_path);
+        Storage::disk('public')->assertMissing($added);
+        $this->assertSame(EventStatus::Draft, $event->status);
     }
 }
