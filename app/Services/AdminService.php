@@ -52,6 +52,21 @@ class AdminService
         });
     }
 
+    public function restoreEvent(Event $event, User $admin, string $reason): void
+    {
+        DB::transaction(function () use ($event, $admin, $reason) {
+            $event->restore();
+
+            AdminAuditLog::create([
+                'admin_user_id' => $admin->id,
+                'action' => 'restore_event',
+                'target_type' => 'event',
+                'target_id' => $event->id,
+                'reason' => $reason,
+            ]);
+        });
+    }
+
     public function deleteEvent(Event $event, User $admin, string $reason): void
     {
         $attendees = $event->attendances()

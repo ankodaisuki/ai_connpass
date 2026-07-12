@@ -48,6 +48,7 @@ class UpdateEventRequest extends FormRequest
                 'dimensions:max_width=4000,max_height=4000',
             ],
             'remove_cover_image' => ['nullable', 'boolean'],
+            'expected_updated_at' => ['nullable', 'integer'],
         ];
     }
 
