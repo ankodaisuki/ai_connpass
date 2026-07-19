@@ -56,11 +56,38 @@ k6 run --env BASE_URL=http://localhost --env TARGET_EVENT_ID=<id> --env TEST_ACC
    ```
 2. **メール実送信の停止**: Railway の環境変数を `MAIL_MAILER=log` に変更（キャンセル待ち登録でメール送信が走るため。SMTPプロバイダの制限・ブラックリスト入りを防ぐ）
 3. **観測の有効化**: `PERF_MONITORING=true` を設定（perf:snapshot が毎時実行される。スケジューラが動いていることを `railway run php artisan schedule:list` で確認）
-4. **シード投入**（数時間かかる想定。進捗ログが10万件ごとに出る）
+4. **シード投入**（数十分〜1時間程度の想定。進捗ログが10万件ごとに出る）
    ```bash
    railway run php artisan perf:seed --force
    # 出力の TARGET_EVENT_ID=<id> を控える
    ```
+   既定値（`--users=150000 --events=30000 --attendances=450000`）は下記「容量計算」の通り
+   MySQLボリューム容量に収まるよう調整済み。**独自の値を指定する場合は必ず容量を再計算すること**
+
+### 容量計算（MySQLボリューム制約）
+
+2026-07-19 に本番Railway環境を確認したところ、**MySQLボリュームの上限は500MB**（現在の使用量は
+アプリのテーブルがほぼ空の状態で182MB）だった。当初のスペックが想定していた「connpass級」の規模
+（ユーザー100万〜300万行等）でシードすると確実に容量超過し、ディスクフルでMySQLがクラッシュする
+リスクがあったため、**実測ベースで容量に収まる規模に縮小した**（2026-07-19、`perf:seed`の既定値を変更）。
+
+**実測方法**: ローカルSailに`users`10,000行・`events`2,000行・`event_attendances`30,000行を投入し、
+`ANALYZE TABLE`後に`information_schema.tables`の`DATA_LENGTH+INDEX_LENGTH`を実測件数で割って算出。
+
+| テーブル | 実測 bytes/行 | 既定値 | 容量 |
+|---|---:|---:|---:|
+| users | 315.1 | 150,000 | 45.1MB |
+| events | 216.4 | 30,000 | 6.2MB |
+| event_attendances | 193.8 | 450,000 | 83.2MB |
+| **合計** | | | **約134MB** |
+
+現在の使用量182MB＋シード後134MB＝約316MB。**残り約184MB**を、シード投入中のREDO/UNDOログ、
+試験実行中に発生する新規行（申込・キャンセル・セッション・キュー等の churn）のバッファとして残す。
+
+ユーザー:過去イベント:申込履歴の比率（5:1:15）は当初のスペックのまま維持しているため、
+DBのクエリ性能・インデックス効果を検証する目的は損なわれない（絶対数のみ縮小）。
+独自の規模で実施したい場合は、上記 bytes/行 を使って `(users×315 + events×216 + attendances×194) / 1024²`
+が安全な範囲（目安150MB以下）に収まることを確認してから `--users`/`--events`/`--attendances` を指定すること。
 
 ### 1. スモーク（1VU で疎通確認）
 

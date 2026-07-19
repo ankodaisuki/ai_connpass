@@ -13,14 +13,14 @@ class PerfSeed extends Command
 {
     protected $signature = 'perf:seed
         {--test-accounts=5000 : k6が使う既知パスワードの試験用アカウント数}
-        {--users=1000000 : 蓄積データとしての一般ユーザー数}
-        {--events=200000 : 蓄積データとしての過去イベント数}
+        {--users=150000 : 蓄積データとしての一般ユーザー数（Railway無料プランのMySQLボリューム500MB制約に収まる規模。実測値の根拠は perf/README.md 参照）}
+        {--events=30000 : 蓄積データとしての過去イベント数}
         {--published-events=5000 : 公開中の背景イベント数}
-        {--attendances=3000000 : 蓄積データとしての申込履歴数}
+        {--attendances=450000 : 蓄積データとしての申込履歴数}
         {--chunk=1000 : バルクINSERTのチャンクサイズ}
         {--force : 確認プロンプトをスキップ}';
 
-    protected $description = '性能試験用のデータを投入する（試験アカウント・対象イベント・想定規模の蓄積データ）';
+    protected $description = '性能試験用のデータを投入する（試験アカウント・対象イベント・想定規模の蓄積データ。既定値はRailway無料プランのMySQLボリューム容量に収まるよう調整済み）';
 
     public function handle(): int
     {
