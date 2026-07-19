@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\AttendanceStatus;
 use App\Enums\EventStatus;
 use App\Models\Event;
 use App\Models\User;
@@ -70,7 +71,56 @@ test('perf:seed が蓄積データ（ユーザー・過去イベント・申込�
         ->count();
     expect($duplicates)->toBe(0);
 
+    // status内訳: $n % 20 のロジックから、100件なら Applied 80 / Cancelled 15 / Waitlisted 5 で確定する
+    expect(DB::table('event_attendances')->where('status', AttendanceStatus::Applied->value)->count())->toBe(80);
+    expect(DB::table('event_attendances')->where('status', AttendanceStatus::Cancelled->value)->count())->toBe(15);
+    expect(DB::table('event_attendances')->where('status', AttendanceStatus::Waitlisted->value)->count())->toBe(5);
+
+    // 時系列の整合性: Cancelled の cancelled_at は applied_at 以降でなければならない
+    // （過去に cancelled_at < applied_at という矛盾が発生するバグが修正された経緯があるための回帰テスト）
+    $invalidCancellations = DB::table('event_attendances')
+        ->where('status', AttendanceStatus::Cancelled->value)
+        ->whereColumn('cancelled_at', '<', 'applied_at')
+        ->count();
+    expect($invalidCancellations)->toBe(0);
+
     // 過去イベントは終了済み
     $past = Event::where('title', '【perf】過去イベント1')->firstOrFail();
     expect($past->end_date->isPast())->toBeTrue();
+});
+
+test('perf:seed はバルクユーザー投入中にID連続性が崩れると例外を投げて中断する', function () {
+    // 本番でのシード投入中に他のユーザー登録が割り込むケースを模して、
+    // 最初のバルクユーザーINSERT直後（次のチャンクが始まる前）に無関係な
+    // ユーザーを1件差し込み、auto increment IDに欠番を作る。
+    $injected = false;
+    DB::listen(function ($query) use (&$injected) {
+        if ($injected) {
+            return;
+        }
+
+        $sql = strtolower($query->sql);
+        $bindings = implode(',', $query->bindings);
+        if (str_contains($sql, 'insert into') && str_contains($sql, 'users') && str_contains($bindings, 'bulk_user_1@perf.test')) {
+            $injected = true;
+            DB::table('users')->insert([
+                'email' => 'interloper@example.com',
+                'name' => '割り込みユーザー',
+                'password' => Hash::make('interloper'),
+                'status' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+    });
+
+    expect(fn () => $this->artisan('perf:seed', [
+        '--test-accounts' => 0,
+        '--users' => 10,
+        '--events' => 0,
+        '--published-events' => 0,
+        '--attendances' => 0,
+        '--chunk' => 3, // 3件ごとにチャンクを分け、1チャンク目の後に割り込ませる
+        '--force' => true,
+    ])->run())->toThrow(RuntimeException::class, 'ID連続性が崩れています');
 });

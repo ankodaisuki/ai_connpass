@@ -159,6 +159,20 @@ class PerfSeed extends Command
             }
         }
 
+        // バルク投入したユーザーのIDが連続していることを検証する（本番で他者の同時登録が
+        // 割り込むとIDが飛び、後続の申込履歴が実在ユーザーに誤って紐づく「静かなデータ汚染」
+        // になり得るため、フェイルファストで止める）
+        if ($userCount > 0) {
+            $actualMaxUserId = (int) DB::table('users')->where('email', 'like', 'bulk_user_%@perf.test')->max('id');
+            $expectedMaxUserId = $userStartId + $userCount - 1;
+            if ($actualMaxUserId !== $expectedMaxUserId) {
+                throw new \RuntimeException(
+                    "bulk_userのID連続性が崩れています（期待={$expectedMaxUserId}, 実際={$actualMaxUserId}）。".
+                    'シード投入中に他のユーザー登録が割り込んだ可能性があります。低トラフィック時間帯に再実行してください。'
+                );
+            }
+        }
+
         // 過去イベント（終了済み。申込履歴のぶら下げ先）
         $eventStartId = null;
         for ($offset = 0; $offset < $eventCount; $offset += $chunk) {
@@ -183,6 +197,18 @@ class PerfSeed extends Command
             }
             DB::table('events')->insert($rows);
             $eventStartId ??= (int) DB::table('events')->where('title', '【perf】過去イベント1')->value('id');
+        }
+
+        // バルク投入した過去イベントのIDが連続していることを検証する（理由はユーザー側と同じ）
+        if ($eventCount > 0) {
+            $actualMaxEventId = (int) DB::table('events')->where('title', 'like', '【perf】過去イベント%')->max('id');
+            $expectedMaxEventId = $eventStartId + $eventCount - 1;
+            if ($actualMaxEventId !== $expectedMaxEventId) {
+                throw new \RuntimeException(
+                    "過去イベントのID連続性が崩れています（期待={$expectedMaxEventId}, 実際={$actualMaxEventId}）。".
+                    'シード投入中に他のイベント作成が割り込んだ可能性があります。低トラフィック時間帯に再実行してください。'
+                );
+            }
         }
 
         // 申込履歴。(event, user) ペアが衝突しないよう、行優先（row-major）グリッドで割り当てる
