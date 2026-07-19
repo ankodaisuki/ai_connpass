@@ -32,3 +32,4 @@ Homestead.yaml
 Thumbs.db
 20260503115501.pdf
 .playwright-mcp/
+/perf/backups/
