@@ -51,9 +51,32 @@ k6 run --env BASE_URL=http://localhost --env TARGET_EVENT_ID=<id> --env TEST_ACC
 ### 0. 事前準備（必須）
 
 1. **DBバックアップ**（CLAUDE.md の規約。シードとテストデータを丸ごと巻き戻せるようにする）
+
+   **Railwayネイティブの Backups 機能は Pro プラン限定**（Hobbyでは使えないことを2026-07-19に確認）。
+   また `railway ssh` でリモートコンテナ内の `bash -c` を実行する方式は、**標準出力の先頭行が
+   欠落する信頼性問題**を実際に確認した（単純な `echo` のテストで再現）ため、大きなダンプ出力を
+   ストリーミングする用途には使わないこと。
+
+   代わりに `railway run` でMySQLの接続変数（`MYSQL_PUBLIC_URL` 等、外部接続用TCPプロキシ経由）を
+   **ローカルプロセスにのみ注入**し、ローカルの `mysqldump`（`brew install mysql-client` 等で導入）を
+   実行する。認証情報はコマンド実行者の目に触れず、出力はローカルファイルへの通常のリダイレクトなので
+   信頼性の問題もない:
+
    ```bash
-   railway run mysqldump -u <user> -p<pass> ai_connpass > backup-before-perf.sql
+   mkdir -p perf/backups   # .gitignore 済み。実データ（メールアドレス等）を含むため絶対にコミットしない
+   BACKUP_FILE="perf/backups/backup-before-perf-$(date +%Y%m%d-%H%M%S).sql"
+   railway run --service <MySQLサービスID> -- bash -c \
+     'mysqldump -h "$(echo $MYSQL_PUBLIC_URL | sed -E "s#mysql://[^@]+@([^:/]+).*#\1#")" \
+                -P "$(echo $MYSQL_PUBLIC_URL | sed -E "s#.*:([0-9]+)/.*#\1#")" \
+                -u "$MYSQLUSER" -p"$MYSQL_ROOT_PASSWORD" \
+                --single-transaction --routines --triggers "$MYSQLDATABASE"' > "$BACKUP_FILE"
    ```
+
+   **取得後は必ず整合性を検証すること**（サイレントな破損を防ぐため）:
+   - ファイル末尾に `-- Dump completed on ...` の完了マーカーがあるか
+   - `grep -c "^CREATE TABLE" "$BACKUP_FILE"` が期待テーブル数（16）と一致するか
+   - 主要テーブルのINSERTタプル数（`grep "^INSERT INTO ..." | grep -o "),(" | wc -l` の結果+1）が、
+     本番の実際の行数（読み取り専用の `SELECT COUNT(*)`）と一致するか
 2. **メール実送信の停止**: Railway の環境変数を `MAIL_MAILER=log` に変更（キャンセル待ち登録でメール送信が走るため。SMTPプロバイダの制限・ブラックリスト入りを防ぐ）
 3. **観測の有効化**: `PERF_MONITORING=true` を設定（perf:snapshot が毎時実行される。スケジューラが動いていることを `railway run php artisan schedule:list` で確認）
 4. **シード投入**（数十分〜1時間程度の想定。進捗ログが10万件ごとに出る）
