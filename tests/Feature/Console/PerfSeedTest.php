@@ -4,6 +4,7 @@ use App\Enums\EventStatus;
 use App\Models\Event;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 uses(RefreshDatabase::class);
@@ -44,4 +45,32 @@ test('perf:seed は --force なしでは確認プロンプトを出す', functio
     $this->artisan('perf:seed', ['--test-accounts' => 1])
         ->expectsConfirmation('大量データを投入します。よろしいですか？', 'no')
         ->assertFailed();
+});
+
+test('perf:seed が蓄積データ（ユーザー・過去イベント・申込履歴）を投入する', function () {
+    $this->artisan('perf:seed', [
+        '--test-accounts' => 0,
+        '--users' => 50,
+        '--events' => 20,
+        '--published-events' => 0,
+        '--attendances' => 100,
+        '--chunk' => 30, // チャンク境界をまたぐ件数で検証
+        '--force' => true,
+    ])->assertSuccessful();
+
+    expect(User::where('email', 'like', 'bulk_user_%@perf.test')->count())->toBe(50);
+    expect(Event::where('title', 'like', '【perf】過去イベント%')->count())->toBe(20);
+    expect(DB::table('event_attendances')->count())->toBe(100);
+
+    // (event_id, user_id) のユニーク制約に反していない（挿入が成功している時点で保証されるが件数で再確認）
+    $duplicates = DB::table('event_attendances')
+        ->select('event_id', 'user_id')
+        ->groupBy('event_id', 'user_id')
+        ->havingRaw('COUNT(*) > 1')
+        ->count();
+    expect($duplicates)->toBe(0);
+
+    // 過去イベントは終了済み
+    $past = Event::where('title', '【perf】過去イベント1')->firstOrFail();
+    expect($past->end_date->isPast())->toBeTrue();
 });

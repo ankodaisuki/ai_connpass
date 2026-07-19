@@ -127,10 +127,94 @@ class PerfSeed extends Command
 
     /**
      * 想定規模の蓄積データ（一般ユーザー・過去イベント・申込履歴）を投入する。
-     * Task 3 で実装する。
+     *
+     * 空のDBで試験すると実態より良い数字が出るため、想定時点までに蓄積している
+     * はずの行数を事前に入れる（スペック「事前データ」参照）。
      */
     private function seedBulkData(string $hash, int $organizerId, Carbon $now): void
     {
-        // Task 3 で実装
+        $chunk = max((int) $this->option('chunk'), 1);
+        $userCount = (int) $this->option('users');
+        $eventCount = (int) $this->option('events');
+        $attendanceCount = (int) $this->option('attendances');
+
+        // 一般ユーザー（bcryptハッシュは1回だけ計算して使い回す）
+        $userStartId = null;
+        for ($offset = 0; $offset < $userCount; $offset += $chunk) {
+            $rows = [];
+            for ($i = $offset + 1; $i <= min($offset + $chunk, $userCount); $i++) {
+                $rows[] = [
+                    'email' => "bulk_user_{$i}@perf.test",
+                    'name' => "【perf】一般ユーザー{$i}",
+                    'password' => $hash,
+                    'status' => 1,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+            DB::table('users')->insert($rows);
+            $userStartId ??= (int) DB::table('users')->where('email', 'bulk_user_1@perf.test')->value('id');
+            if (($offset + $chunk) % 100000 < $chunk) {
+                $this->info('ユーザー投入: '.min($offset + $chunk, $userCount)."/{$userCount}");
+            }
+        }
+
+        // 過去イベント（終了済み。申込履歴のぶら下げ先）
+        $eventStartId = null;
+        for ($offset = 0; $offset < $eventCount; $offset += $chunk) {
+            $rows = [];
+            for ($i = $offset + 1; $i <= min($offset + $chunk, $eventCount); $i++) {
+                $date = $now->copy()->subDays(1 + ($i % 365))->setTime(19, 0);
+                $rows[] = [
+                    'user_id' => $organizerId,
+                    'title' => "【perf】過去イベント{$i}",
+                    'description' => '蓄積データ用の終了済みイベント。',
+                    'category' => EventCategory::cases()[$i % count(EventCategory::cases())]->value,
+                    'prefecture' => '東京都',
+                    'location' => '会場'.$i,
+                    'online_url' => null,
+                    'event_date' => $date,
+                    'end_date' => $date->copy()->addHours(2),
+                    'capacity' => 20 + ($i % 180),
+                    'status' => EventStatus::Published->value,
+                    'created_at' => $date,
+                    'updated_at' => $date,
+                ];
+            }
+            DB::table('events')->insert($rows);
+            $eventStartId ??= (int) DB::table('events')->where('title', '【perf】過去イベント1')->value('id');
+        }
+
+        // 申込履歴。(event, user) ペアが衝突しないよう、イベントは15件ごと・ユーザーは連番で割り当てる
+        if ($attendanceCount > 0 && $userCount > 0 && $eventCount > 0) {
+            for ($offset = 0; $offset < $attendanceCount; $offset += $chunk) {
+                $rows = [];
+                for ($n = $offset; $n < min($offset + $chunk, $attendanceCount); $n++) {
+                    $statusRoll = $n % 20; // 80% Applied / 15% Cancelled / 5% Waitlisted
+                    $status = match (true) {
+                        $statusRoll < 16 => 0, // Applied
+                        $statusRoll < 19 => 1, // Cancelled
+                        default => 2,          // Waitlisted
+                    };
+                    $rows[] = [
+                        'event_id' => $eventStartId + (intdiv($n, 15) % $eventCount),
+                        'user_id' => $userStartId + ($n % $userCount),
+                        'status' => $status,
+                        'applied_at' => $now->copy()->subDays($n % 365),
+                        'cancelled_at' => $status === 1 ? $now->copy()->subDays($n % 30) : null,
+                        'waitlisted_at' => $status === 2 ? $now->copy()->subDays($n % 365) : null,
+                        'attendance_mode' => $n % 3 === 0 ? 'online' : 'in_person',
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+                DB::table('event_attendances')->insert($rows);
+                if (($offset + $chunk) % 500000 < $chunk) {
+                    $this->info('申込履歴投入: '.min($offset + $chunk, $attendanceCount)."/{$attendanceCount}");
+                }
+            }
+        }
+
+        $this->info("蓄積データ投入完了（ユーザー{$userCount}・過去イベント{$eventCount}・申込{$attendanceCount}）");
     }
 }
