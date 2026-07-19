@@ -10,3 +10,7 @@ Artisan::command('inspire', function () {
 
 // 孤児カバー画像の定期回収（安全網）
 Schedule::command('covers:prune-orphans')->weekly();
+
+if (config('app.perf_monitoring')) {
+    Schedule::command('perf:snapshot')->hourly();
+}
