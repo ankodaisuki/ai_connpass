@@ -57,7 +57,8 @@ class PerfSeed extends Command
 
         $count = (int) $this->option('test-accounts');
         $chunk = (int) $this->option('chunk');
-        foreach (array_chunk(range(1, max($count, 0)), max($chunk, 1)) as $ids) {
+        $allIds = $count > 0 ? range(1, $count) : [];
+        foreach (array_chunk($allIds, max($chunk, 1)) as $ids) {
             DB::table('users')->insert(array_map(fn (int $i): array => [
                 'email' => "perf_user_{$i}@perf.test",
                 'name' => "【perf】試験ユーザー{$i}",
@@ -103,7 +104,8 @@ class PerfSeed extends Command
         $chunk = (int) $this->option('chunk');
         $prefectures = ['東京都', '大阪府', '愛知県', 'オンライン', '福岡県'];
 
-        foreach (array_chunk(range(1, max($count, 0)), max($chunk, 1)) as $ids) {
+        $allIds = $count > 0 ? range(1, $count) : [];
+        foreach (array_chunk($allIds, max($chunk, 1)) as $ids) {
             DB::table('events')->insert(array_map(fn (int $i): array => [
                 'user_id' => $organizerId,
                 'title' => "【perf】背景イベント{$i}",
