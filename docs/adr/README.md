@@ -59,4 +59,4 @@
 | ADR | テーマ | 比較した主な選択肢 |
 |---|---|---|
 | [0003](v6/technical/0003-platform-statistics-aggregation.md) | 全体統計の集計方式（[プロダクト0003](v6/product/0003-platform-statistics.md) の裏側） | 都度 count（採用） / 見直しトリガー / 代替案（短時間キャッシュ / 集計テーブル / リードレプリカ / アーカイブ） |
-| [0004](v6/technical/0004-cover-image-storage.md) | カバー画像の保存先ストレージ方式（[プロダクト0004](v6/product/0004-event-cover-image.md) の裏側） | 永続ディスク vs Railway ストレージ vs Cloudflare R2 vs AWS S3 / 移行トリガー・ロールバック方針。実績: 永続ディスク → R2 へ移行済み |
+| [0004](v6/technical/0004-cover-image-storage.md) | カバー画像の保存先ストレージ方式（[プロダクト0004](v6/product/0004-event-cover-image.md) の裏側） | 永続ディスク vs Railway ストレージ vs Cloudflare R2 vs AWS S3 / 移行トリガー・ロールバック方針。実績: 永続ディスク → R2 へ移行済み。追加検討(Proposed): アップロード画像のウィルス・不正ファイル対策方式（再エンコード / 自前ClamAV / 外部API / 隔離公開） |
