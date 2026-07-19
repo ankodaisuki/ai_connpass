@@ -1,12 +1,14 @@
-// 試験2 ロングラン: 3〜5 RPS を24時間継続し、毎時5分だけ10 RPSの小ピークを入れる。
+// 試験2 ロングラン: 3〜5 RPS を12時間継続し、毎時5分だけ10 RPSの小ピークを入れる。
 // メモリ・テーブル行数・応答時間の「傾き」を見る試験（観測は perf:snapshot が毎時実施）。
+// 当初計画は24時間だったが、毎時12点あれば傾き検出には十分・セッション寿命120分の6周期分で
+// 検証に支障ないと判断し12時間に短縮（docs/superpowers/specs/2026-07-11-v7-performance-test-design.md 参照）。
 // ramping-arrival-rateのstagesは「直前rateからtargetまでdurationかけて線形にランプする」定義のため、
 // targetを切り替えるたびに「立ち上がり（ランプ）」＋「同target維持（プラトー）」のペアを積み、
 // ベース/小ピークそれぞれが定常状態になるようにする（Task 7 ramp.jsと同じ手法）。
 import { sleep } from 'k6';
 import { login, browse, applyToEvent, myAttendances, logout, registerNewUser, browseMyPages, pickUserIndex, SLO_THRESHOLDS } from './lib/journey.js';
 
-const HOURS = Number(__ENV.HOURS || 24);
+const HOURS = Number(__ENV.HOURS || 12);
 
 // 1時間 = 55分ベース（6 iter/10s ≒ 4 RPS）＋ 5分小ピーク（14 iter/10s ≒ 10 RPS）
 // HOURS が小数（短縮版）の場合は比率を保って縮める。秒単位に丸めて指定する

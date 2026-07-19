@@ -15,7 +15,7 @@
 - `k6/lib/journey.js` — 共通ジャーニー（CSRFログイン・閲覧・申込）
 - `k6/ramp.js` — 試験1(a) 限界探索ランプ（5→10→25→50→100 RPS）
 - `k6/spike.js` — 試験1(b) スパイク再現（殺到1分 約100 RPS）
-- `k6/longrun.js` — 試験2 24時間ロングラン（3〜5 RPS＋毎時10 RPS×5分）
+- `k6/longrun.js` — 試験2 12時間ロングラン（当初計画24時間から短縮。3〜5 RPS＋毎時10 RPS×5分）
 
 ## RPS とジャーニーの換算
 
@@ -122,10 +122,12 @@ railway run php artisan perf:verify <id>   # 定員超過0・繰り上げ漏れ0
   フル実行時にも継続的に発生する場合は、`perf/k6/spike.js` の該当シナリオ（主に `rush`）の
   `preAllocatedVUs` を引き上げて再実行する
 
-### 4. 試験2 ロングラン（24時間）
+### 4. 試験2 ロングラン（12時間・当初計画24時間から短縮）
+
+**短縮の理由**: 毎時スナップショット12点は傾き検出（メモリ・テーブル行数・応答時間が「線形に増加し続けていないか」）に十分機能する。セッション寿命120分に対し6周期分あり、期限切れセッション掃除の検証にも支障ない。トレードオフとして、緩やかなリークの検出力と「何日で限界に達するか」の外挿精度は24時間実施より下がるため、レポートには観測窓短縮の注記を残すこと。
 
 ```bash
-nohup k6 run --env BASE_URL=https://... --env TARGET_EVENT_ID=<id> \
+nohup k6 run --env BASE_URL=https://... --env TARGET_EVENT_ID=<id> --env HOURS=12 \
        --out json=results/longrun.json perf/k6/longrun.js > results/longrun.log 2>&1 &
 ```
 
