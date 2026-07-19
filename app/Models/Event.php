@@ -38,6 +38,19 @@ class Event extends Model
     use HasFactory, SoftDeletes;
 
     /**
+     * モデルの起動時フック。物理削除時にカバー画像ディレクトリを掃除する。
+     * ソフトデリートでは削除しない（復元前提）。
+     */
+    protected static function booted(): void
+    {
+        static::forceDeleted(function (Event $event): void {
+            if ($event->cover_image_path !== null) {
+                Storage::disk(config('filesystems.cover_disk'))->deleteDirectory("events/{$event->id}");
+            }
+        });
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
