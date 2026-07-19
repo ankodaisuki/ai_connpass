@@ -185,7 +185,8 @@ class PerfSeed extends Command
             $eventStartId ??= (int) DB::table('events')->where('title', '【perf】過去イベント1')->value('id');
         }
 
-        // 申込履歴。(event, user) ペアが衝突しないよう、イベントは15件ごと・ユーザーは連番で割り当てる
+        // 申込履歴。(event, user) ペアが衝突しないよう、行優先（row-major）グリッドで割り当てる
+        // （$n < $eventCount * $userCount である限り、$n ごとに一意な (event, user) ペアになる）
         if ($attendanceCount > 0 && $userCount > 0 && $eventCount > 0) {
             for ($offset = 0; $offset < $attendanceCount; $offset += $chunk) {
                 $rows = [];
@@ -196,13 +197,16 @@ class PerfSeed extends Command
                         $statusRoll < 19 => 1, // Cancelled
                         default => 2,          // Waitlisted
                     };
+                    $appliedOffsetDays = $n % 365;
+                    // cancelled_at は applied_at 以降・now 以前になるよう applied_at からの相対計算にする
+                    $cancelledOffsetDays = max(0, $appliedOffsetDays - (1 + ($n % 14)));
                     $rows[] = [
-                        'event_id' => $eventStartId + (intdiv($n, 15) % $eventCount),
-                        'user_id' => $userStartId + ($n % $userCount),
+                        'event_id' => $eventStartId + ($n % $eventCount),
+                        'user_id' => $userStartId + (intdiv($n, $eventCount) % $userCount),
                         'status' => $status,
-                        'applied_at' => $now->copy()->subDays($n % 365),
-                        'cancelled_at' => $status === 1 ? $now->copy()->subDays($n % 30) : null,
-                        'waitlisted_at' => $status === 2 ? $now->copy()->subDays($n % 365) : null,
+                        'applied_at' => $now->copy()->subDays($appliedOffsetDays),
+                        'cancelled_at' => $status === 1 ? $now->copy()->subDays($cancelledOffsetDays) : null,
+                        'waitlisted_at' => $status === 2 ? $now->copy()->subDays($appliedOffsetDays) : null,
                         'attendance_mode' => $n % 3 === 0 ? 'online' : 'in_person',
                         'created_at' => $now,
                         'updated_at' => $now,
